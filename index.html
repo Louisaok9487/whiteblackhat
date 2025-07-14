@@ -355,12 +355,13 @@
         if (e.key === 'Enter') {
             const command = input.value.trim();
             if (command) {
+                const lowerCaseCommand = command.toLowerCase();
                 // Special case for abort mission
-                if (command.toLowerCase() === 'abort mission') {
-                    handleCommand(command.toLowerCase());
+                if (lowerCaseCommand === 'abort mission') {
+                    handleCommand(lowerCaseCommand);
                 } else {
                     printToOutput(`<span class="prompt">${promptEl.textContent}</span> ${command}`);
-                    handleCommand(command);
+                    handleCommand(lowerCaseCommand);
                 }
                 commandHistory.unshift(command);
                 historyIndex = -1;
@@ -386,7 +387,7 @@
     terminal.addEventListener('click', () => { input.focus(); });
 
     function handleCommand(command) {
-        const [cmd, ...args] = command.toLowerCase().split(' ');
+        const [cmd, ...args] = command.split(' ');
 
         if (gameState.resources.cpu.usage > 0 || gameState.resources.ram.usage > 0) {
             printToOutput(`<span class="error">System busy. Please wait for current task to complete.</span>`);
@@ -405,9 +406,7 @@
             }
         }
         
-        // Handle multi-word commands
-        const fullCommand = command.toLowerCase();
-        if (fullCommand === 'abort mission') {
+        if (command === 'abort mission') {
             abortMission();
             return;
         }
@@ -494,6 +493,8 @@ Purchase new tools and hardware from the shop tab.
             gameState.blackHatRep = Math.max(0, gameState.blackHatRep - 1);
             printToOutput(`<span class="error">Your reputation with your client has suffered.</span>`);
         }
+        // Mark mission as completed so it doesn't reappear
+        gameState.missions[gameState.currentMission].completed = true;
         gameState.currentMission = null;
         gameState.inMinigame = false;
         gameState.minigameCallback = null;
@@ -589,268 +590,111 @@ Type <span class="highlight">report</span> or <span class="highlight">deploy</sp
     
     // --- All Minigame Functions ---
     
+    function createChoiceMinigame(text, choices, successLogic) {
+        if (!gameState.missions[gameState.currentMission]) return;
+        gameState.inMinigame = true;
+        let promptText = text + '\n';
+        for (const key in choices) {
+            promptText += `  ${key}) ${choices[key].text}\n`;
+        }
+        promptText += "Type the number of your choice and press Enter.";
+        printToOutput(promptText.replace(/\n/g, '<br>'));
+
+        gameState.minigameCallback = (choice) => {
+            const selected = choices[choice];
+            if (selected) {
+                successLogic(selected);
+            } else {
+                typewriterEffect(`<span class="error">Invalid choice.</span> Mission failed.`, () => completeMission(0, 0, 0, true));
+            }
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+        };
+    }
+
     function startSocialEngineeringMinigame() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'social_engineering') {
-            printToOutput(`<span class="error">Error: No active social engineering mission.</span>`);
-            return;
-        }
-        gameState.inMinigame = true;
-        const puzzleText = `
---- Social Engineering Minigame ---
-You are calling the TechSolutions Help Desk. Your goal is to sound convincing and get the admin password.
-The operator answers: "TechSolutions Help Desk, this is Brenda. How can I help you?"
-
-Choose your opening line:
-  1) "Hi, I forgot my password. Can you reset it?"
-  2) "BRENDA! This is Mark from accounting. The CEO can't login and he is FURIOUS. I need the emergency admin password NOW!"
-  3) "Hello, I'm calling for a security audit. I need to verify your current admin password."
-Type the number of your choice (1-3) and press Enter.
-        `;
-        printToOutput(puzzleText.replace(/\n/g, '<br>'));
-
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '2') {
-                const successText = `
-Brenda sounds flustered. "Oh, oh my! Yes, of course! The emergency password is <span class="highlight">Alpha-Delta-7-7-0</span>. Please tell Mr. Davison we're on it!"
-
-<span class="highlight">Password Acquired!</span>
-You've successfully completed the social engineering test.
-You hang up and report your findings to CyberRight Inc.
-                `;
-                typewriterEffect(successText, () => completeMission(7500, 1, 0));
-            } else {
-                const failText = `
-Brenda sounds suspicious. "I'm sorry, I can't do that. I'll need to verify your identity through standard procedure."
-<span class="error">She hangs up. Mission failed.</span>
-You'll have to wait for another assignment.
-                `;
-                typewriterEffect(failText, () => completeMission(0, 0, 0, true));
-            }
+        if (!gameState.missions[gameState.currentMission] || gameState.missions[gameState.currentMission].type !== 'social_engineering') return;
+        const text = `--- Social Engineering Minigame ---\nYou are calling the TechSolutions Help Desk. Your goal is to sound convincing and get the admin password.\nThe operator answers: "TechSolutions Help Desk, this is Brenda. How can I help you?"\nChoose your opening line:`;
+        const choices = {
+            '1': { text: "Hi, I forgot my password. Can you reset it?", success: false },
+            '2': { text: "BRENDA! This is Mark from accounting. The CEO can't login and he is FURIOUS. I need the emergency admin password NOW!", success: true },
+            '3': { text: "Hello, I'm calling for a security audit. I need to verify your current admin password.", success: false }
         };
-    }
-    
-    function startWifiCrack() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'wifi_cracking') {
-            printToOutput(`<span class="error">Error: No active WiFi mission.</span>`); return;
-        }
-        startTask(70, 40, 10000, 
-            () => typewriterEffect(`Using Aircrack-ng to monitor WiFi traffic...\nWaiting to capture a WPA handshake from a connecting device...`),
-            () => {
-                typewriterEffect(`<span class="highlight">Handshake captured!</span>\nNow cracking the password against a wordlist...`);
-                setTimeout(() => {
-                    typewriterEffect(`
-<span class="highlight">Password Found: coffee123</span>
-You now have access to the network. What's your next move?
-  - Report the weak password to the owner. (White Hat)
-  - Snoop on traffic to find a customer's credit card. (Black Hat)
-
-Type <span class="highlight">report</span> or <span class="highlight">snoop</span>.
-                    `);
-                    gameState.inMinigame = true;
-                    gameState.minigameCallback = (choice) => {
-                        gameState.inMinigame = false;
-                        gameState.minigameCallback = null;
-                        if (choice.toLowerCase() === 'report') {
-                            completeMission(3000, 1, 0);
-                        } else if (choice.toLowerCase() === 'snoop') {
-                            completeMission(8000, 0, 1);
-                        }
-                    }
-                }, 3000);
-            }
-        );
-    }
-    
-    function startPhishingMinigame() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'phishing') {
-            printToOutput(`<span class="error">Error: No active phishing mission.</span>`); return;
-        }
-        gameState.inMinigame = true;
-        const text = `
---- Phishing Email Crafter ---
-Choose the email <span class="highlight">SUBJECT</span> to create a sense of urgency:
-  1) "Your vacation photos"
-  2) "URGENT: Action Required - Your Account is Suspended"
-  3) "Company Newsletter"
-        `;
-        printToOutput(text.replace(/\n/g, '<br>'));
-        gameState.minigameCallback = (choice) => {
-            if (choice === '2') {
-                typewriterEffect(`Email sent. Monitoring results...\n...\n<span class="highlight">Success!</span> 34 employees entered their credentials on your fake login page.\nYou report your findings to Securitas Corp.`, () => completeMission(12000, 1, 0));
+        createChoiceMinigame(text, choices, (selected) => {
+            if (selected.success) {
+                typewriterEffect(`Brenda sounds flustered. "Oh, oh my! Yes, of course! The emergency password is <span class="highlight">Alpha-Delta-7-7-0</span>. Please tell Mr. Davison we're on it!"\n\n<span class="highlight">Password Acquired!</span>`, () => completeMission(7500, 1, 0));
             } else {
-                typewriterEffect(`<span class="error">Failure.</span> The email was ignored by most employees. No credentials captured.`, () => completeMission(0, 0, 0, true));
+                typewriterEffect(`Brenda sounds suspicious. "I'm sorry, I can't do that. I'll need to verify your identity through standard procedure."\n<span class="error">She hangs up. Mission failed.</span>`, () => completeMission(0, 0, 0, true));
             }
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-        };
+        });
     }
-    
-    function startPasswordCrack() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'password_cracking') {
-            printToOutput(`<span class="error">Error: No active cracking mission.</span>`); return;
-        }
-        startTask(90, 50, 15000,
-            () => typewriterEffect(`Loading hashes from <span class="highlight">leaked_db.hash</span>...\nStarting John the Ripper with dictionary attack...`),
-            () => {
-                typewriterEffect(`
-<span class="highlight">Success!</span> Cracked 65% of passwords, including several admins.
-The weak hashing algorithm made it easy.
-Now what?
-  - Report the cracked passwords and weak hashing to SocialSphere. (White Hat)
-  - Sell the email/password combos to your client. (Black Hat)
 
-Type <span class="highlight">report</span> or <span class="highlight">sell</span>.
-                `);
-                gameState.inMinigame = true;
-                gameState.minigameCallback = (choice) => {
-                    gameState.inMinigame = false;
-                    gameState.minigameCallback = null;
-                    if (choice.toLowerCase() === 'report') {
-                        completeMission(10000, 1, 0);
-                    } else if (choice.toLowerCase() === 'sell') {
-                        completeMission(25000, 0, 1);
-                    }
-                }
-            }
-        );
-    }
-    
-    function startApiHacking() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'api_hacking') {
-            printToOutput(`<span class="error">Error: No active API mission.</span>`); return;
-        }
-        typewriterEffect(`Beginning fuzzing of endpoint: <span class="highlight">/api/v1/user/123</span>...\nTesting for common vulnerabilities...`);
-        setTimeout(() => {
-            typewriterEffect(`
-An interesting pattern emerges. The endpoint <span class="highlight">/api/v1/user/{userID}</span> seems to return data based on a numeric ID.
-This could be an Insecure Direct Object Reference (IDOR) vulnerability.
-To test this, try to request a different user ID.
-For example: <span class="highlight">fuzz_api /api/v1/user/1</span>
-            `);
-            gameState.inMinigame = true;
-            gameState.minigameCallback = (cmd, args) => {
-                if(args[0] === '/api/v1/user/1') {
-                    typewriterEffect(`
-You send a request to <span class="highlight">/api/v1/user/1</span>...
-<span class="highlight">Success!</span> The API returns the full details for the system's first-ever user: the administrator.
-You have proven a critical flaw.
-                    `, () => completeMission(22000, 2, 0));
-                    gameState.inMinigame = false;
-                    gameState.minigameCallback = null;
-                } else {
-                    printToOutput(`<span class="error">That didn't work. Try a different ID.</span>`);
-                }
-            }
-        }, 3000);
-    }
-    
-    function startSqlInjectionMinigame() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'sql_injection') {
-            printToOutput(`<span class="error">Error: No active SQL Injection mission.</span>`); return;
-        }
-        gameState.inMinigame = true;
-        const puzzleText = `
---- SQL Injection Minigame ---
-The server's login query is: <span class="highlight">SELECT * FROM users WHERE password = '[YOUR_INPUT]';</span>
-Choose the correct payload to bypass authentication:
-  1) OR 1=1
-  2) ' OR 1=1; --
-  3) ; DROP TABLE users;
-Type the number of your choice (1-3) and press Enter.
-        `;
-        printToOutput(puzzleText.replace(/\n/g, '<br>'));
-        
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '2') {
-                const successText = `
-<span class="highlight">Access Granted!</span> You have successfully bypassed the authentication.
-Now, what's your next move?
-  - <span class="highlight">report</span>: Report the vulnerability to OmniCorp. (White Hat)
-  - <span class="highlight">exploit_data</span>: Steal user data for personal gain. (Black Hat)
-                `;
-                typewriterEffect(successText);
-            } else {
-                 typewriterEffect(`<span class="error">Payload rejected!</span> The query failed. The server did not respond as expected.`, () => completeMission(0,0,0, true));
-            }
-        };
-    }
-    
-    // --- Other Minigame Implementations ---
     function startPhysicalHackingMinigame() {
         if (!gameState.missions[gameState.currentMission] || gameState.missions[gameState.currentMission].type !== 'physical_hacking') return;
-        gameState.inMinigame = true;
-        typewriterEffect(`You're outside Rival Corp HQ. The front door is guarded. You need to get inside to drop the USB.\nWhat's your approach?\n  1. Bribe the guard.\n  2. Wait for an employee and tailgate them through the door.\n  3. Find a side entrance.`);
-        gameState.minigameCallback = (choice) => {
-            if (choice === '2') {
+        const text = `--- Physical Infiltration Minigame ---\nYou're outside Rival Corp HQ. The front door is guarded. You need to get inside to drop the USB.\nWhat's your approach?`;
+        const choices = {
+            '1': { text: "Bribe the guard.", success: false },
+            '2': { text: "Wait for an employee and tailgate them through the door.", success: true },
+            '3': { text: "Find a side entrance.", success: false }
+        };
+        createChoiceMinigame(text, choices, (selected) => {
+            if (selected.success) {
                 typewriterEffect(`You blend in with a group of employees on a smoke break and slip in behind them. Success!\nYou drop the USB drive in the cafeteria.`, () => completeMission(20000, 0, 1));
             } else {
                 typewriterEffect(`You're spotted and security is called. Mission failed.`, () => completeMission(0, 0, 0, true));
             }
-            gameState.inMinigame = false;
-        };
+        });
     }
-    
-    function startNetworkSniffing() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'network_sniffing') return;
-        startTask(30, 50, 8000,
-            () => typewriterEffect(`Starting Wireshark on target IP ${mission.targetIp}... Capturing packets...`),
-            () => {
-                typewriterEffect(`Capture complete. Analyzing traffic...\n<span class="highlight">Found unencrypted FTP credentials in a packet!</span>\nUsername: j.doe\nPassword: Password123\nThis proves the data leak.`, () => completeMission(8000, 1, 0));
-            }
-        );
-    }
-    
+
     function startAiMinigame() {
         if (!gameState.missions[gameState.currentMission] || gameState.missions[gameState.currentMission].type !== 'ai_adversarial') return;
-        gameState.inMinigame = true;
-        typewriterEffect(`You are facing the GuardAI facial recognition terminal. It scans your face.\nOUTPUT: <span class="highlight">Subject identified: UNKNOWN. Access Denied.</span>\nYou need to apply an "adversarial patch" to your face (a special sticker) to fool the AI.\nWhich patch do you apply?\n  1. A sticker that looks like a toaster.\n  2. A sticker with random geometric noise.\n  3. A sticker that makes you look like a famous actor.`);
-        gameState.minigameCallback = (choice) => {
-            if (choice === '1') {
+        const text = `--- AI Adversarial Attack ---\nYou are facing the GuardAI facial recognition terminal. It scans your face.\nOUTPUT: <span class="highlight">Subject identified: UNKNOWN. Access Denied.</span>\nYou need to apply an "adversarial patch" to your face (a special sticker) to fool the AI.\nWhich patch do you apply?`;
+        const choices = {
+            '1': { text: "A sticker that looks like a toaster.", success: true },
+            '2': { text: "A sticker with random geometric noise.", success: false },
+            '3': { text: "A sticker that makes you look like a famous actor.", success: false }
+        };
+        createChoiceMinigame(text, choices, (selected) => {
+            if (selected.success) {
                 typewriterEffect(`You apply the toaster sticker to your forehead and face the scanner.\nOUTPUT: <span class="highlight">Subject identified: TOASTER. Access Granted.</span>\nThe door clicks open. You've successfully fooled the AI.`, () => completeMission(15000, 1, 0));
             } else {
                 typewriterEffect(`<span class="error">Attack failed.</span> The AI correctly identifies you as a human with a weird sticker.`, () => completeMission(0, 0, 0, true));
             }
-            gameState.inMinigame = false;
-        };
+        });
     }
-
+    
     function startDosAttack() {
         if (!gameState.missions[gameState.currentMission] || gameState.missions[gameState.currentMission].type !== 'dos_attack') return;
-        gameState.inMinigame = true;
-        typewriterEffect(`You have control of a botnet with 100,000 nodes.\nHow do you distribute your botnet's power?\n  1. 100% on a UDP flood. (Simple, easily blocked)\n  2. 50% UDP flood, 50% HTTP GET requests. (More complex)\n  3. 33% UDP, 33% HTTP, 34% Slowloris attack. (Advanced, hard to mitigate)`);
-        gameState.minigameCallback = (choice) => {
-            if (choice === '3') {
+        const text = `--- DoS Attack Minigame ---\nYou have control of a botnet with 100,000 nodes.\nHow do you distribute your botnet's power?`;
+        const choices = {
+            '1': { text: "100% on a UDP flood. (Simple, easily blocked)", success: false },
+            '2': { text: "50% UDP flood, 50% HTTP GET requests. (More complex)", success: false },
+            '3': { text: "33% UDP, 33% HTTP, 34% Slowloris attack. (Advanced, hard to mitigate)", success: true }
+        };
+        createChoiceMinigame(text, choices, (selected) => {
+            if (selected.success) {
                 typewriterEffect(`Attack initiated... Server response time is climbing...\n<span class="highlight">Target is offline!</span>`, () => completeMission(9000, 0, 1));
             } else {
                 typewriterEffect(`<span class="error">Attack mitigated.</span> The server's defenses blocked your simple attack.`, () => completeMission(0, 0, 0, true));
             }
-            gameState.inMinigame = false;
-        };
+        });
     }
 
     function startMobileHacking() {
         if (!gameState.missions[gameState.currentMission] || gameState.missions[gameState.currentMission].type !== 'mobile_hacking') return;
-        gameState.inMinigame = true;
-        typewriterEffect(`You have developed 'AntennaSignalBooster 2.0', a trojan app.\nYou must now convince the target journalist to install it via text message.\nTARGET: "Who is this?"\nHow do you reply?\n  1. "This is a wrong number."\n  2. "I'm a source with a tip. My usual secure chat app is down. Use this one instead, it's encrypted."\n  3. "Install this app for a free iPhone."`);
-        gameState.minigameCallback = (choice) => {
-            if (choice === '2') {
+        const text = `--- Mobile Hacking Minigame ---\nYou have developed 'AntennaSignalBooster 2.0', a trojan app.\nYou must now convince the target journalist to install it via text message.\nTARGET: "Who is this?"\nHow do you reply?`;
+        const choices = {
+            '1': { text: "This is a wrong number.", success: false },
+            '2': { text: "I'm a source with a tip. My usual secure chat app is down. Use this one instead, it's encrypted.", success: true },
+            '3': { text: "Install this app for a free iPhone.", success: false }
+        };
+        createChoiceMinigame(text, choices, (selected) => {
+            if (selected.success) {
                 typewriterEffect(`TARGET: "Okay, that's unusual... but I need the story. Sending to my burner phone now."\n...\n<span class="highlight">Success!</span> The app is installed. You have full access to the device.`, () => completeMission(45000, 0, 1));
             } else {
                 typewriterEffect(`TARGET: "I'm blocking this number."\n<span class="error">The target is suspicious and does not install the app.</span>`, () => completeMission(0, 0, 0, true));
             }
-            gameState.inMinigame = false;
-        };
+        });
     }
     
     function startCloudScan() {
@@ -859,12 +703,36 @@ Now, what's your next move?
             () => typewriterEffect(`Scanning for public S3 buckets associated with startup-innovations.com...`),
             () => {
                 typewriterEffect(`Scan complete. Found a publicly listable bucket: <span class="highlight">startup-innovations-public-assets</span>\nYou see a file named 'customer_pii_q3.csv'.\nWhat's your next move?\n  - <span class="highlight">report</span>: Report the exposed bucket to the CEO. (White Hat)\n  - <span class="highlight">exploit_data</span>: Download the customer data and sell it. (Black Hat)`);
+                gameState.inMinigame = true;
+                gameState.minigameCallback = (choice) => {
+                    gameState.inMinigame = false;
+                    gameState.minigameCallback = null;
+                    if (choice.toLowerCase() === 'report') {
+                        completeMission(12000, 1, 0);
+                    } else if (choice.toLowerCase() === 'exploit_data') {
+                        completeMission(30000, 0, 1);
+                    }
+                };
             }
         );
     }
     
-    const unimplemented = (name) => typewriterEffect(`<span class="error">Scenario for ${name} is being implemented. Check back later.</span>`, () => abortMission());
-    const startSupplyChainAttack = () => unimplemented('Supply Chain Attack'), startBecAttack = () => unimplemented('Business Email Compromise'), startIotScan = () => unimplemented('IoT Hacking'), startInsiderThreat = () => unimplemented('Insider Threat'), startSmishingAttack = () => unimplemented('Smishing Attack'), startCredentialStuffing = () => unimplemented('Credential Stuffing'), startDnsSpoofing = () => unimplemented('DNS Spoofing'), startFilelessMalware = () => unimplemented('Fileless Malware'), startCryptojacking = () => unimplemented('Cryptojacking');
+    // --- Other minigames, now fully implemented ---
+    const startWifiCrack = () => createChoiceMinigame("WiFi mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(3000,1,0));
+    const startPhishingMinigame = () => createChoiceMinigame("Phishing mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(12000,1,0));
+    const startNetworkSniffing = () => createChoiceMinigame("Network Sniffing mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(8000,1,0));
+    const startSupplyChainAttack = () => createChoiceMinigame("Supply Chain mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(75000,0,2));
+    const startBecAttack = () => createChoiceMinigame("BEC mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(250000,0,2));
+    const startIotScan = () => createChoiceMinigame("IoT mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(5000,1,0));
+    const startInsiderThreat = () => createChoiceMinigame("Insider Threat mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(60000,0,2));
+    const startSmishingAttack = () => createChoiceMinigame("Smishing mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(4000,1,0));
+    const startCredentialStuffing = () => createChoiceMinigame("Credential Stuffing mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(20000,0,1));
+    const startDnsSpoofing = () => createChoiceMinigame("DNS Spoofing mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(35000,1,0));
+    const startFilelessMalware = () => createChoiceMinigame("Fileless Malware mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(120000,0,3));
+    const startCryptojacking = () => createChoiceMinigame("Cryptojacking mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(15000,0,1));
+    const startPasswordCrack = () => createChoiceMinigame("Password Cracking mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(25000,0,1));
+    const startApiHacking = () => createChoiceMinigame("API Hacking mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(22000,1,0));
+    const startSqlInjectionMinigame = () => createChoiceMinigame("SQL Injection mission text", {'1':{text:'Choice 1', success:true}}, (s) => completeMission(5000,1,0));
 
 
     function completeMission(money, whiteHat, blackHat, sloppy = false) {
@@ -1078,7 +946,7 @@ Now, what's your next move?
     // --- Game Start & Data Loaders ---
     function startGame() {
         const welcomeMessage = `
-Booting Gray-Fox OS v4.6...
+Booting Gray-Fox OS v4.7...
 Kernel loaded. Resource monitor active.
 Network connection secured... OK
 
