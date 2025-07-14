@@ -236,6 +236,7 @@
                          <span>💰 Money: $<span id="money">0</span></span>
                          <span>😇 White Hat: <span id="white-hat-rep">0</span></span>
                          <span>😈 Black Hat: <span id="black-hat-rep">0</span></span>
+                         <span>📈 Missions: <span id="mission-counter">0/23</span></span>
                     </div>
                      <div id="heat-display">
                         <span>Heat Level:</span>
@@ -288,6 +289,7 @@
     const moneyEl = document.getElementById('money');
     const whiteHatRepEl = document.getElementById('white-hat-rep');
     const blackHatRepEl = document.getElementById('black-hat-rep');
+    const missionCounterEl = document.getElementById('mission-counter');
     const heatBar = document.getElementById('heat-bar');
     const shopToolsContainer = document.getElementById('shop-tools');
     const shopHardwareContainer = document.getElementById('shop-hardware');
@@ -310,6 +312,7 @@
         currentMission: null,
         inMinigame: false,
         minigameCallback: null,
+        gameOver: false,
         resources: {
             cpu: { usage: 0, max: 100 },
             ram: { usage: 0, max: 100 }
@@ -387,6 +390,11 @@
     terminal.addEventListener('click', () => { input.focus(); });
 
     function handleCommand(command) {
+        if (gameState.gameOver) {
+            printToOutput("The game is over. Refresh the page to play again.");
+            return;
+        }
+
         const [cmd, ...args] = command.split(' ');
 
         if (gameState.resources.cpu.usage > 0 || gameState.resources.ram.usage > 0) {
@@ -510,7 +518,7 @@ Purchase new tools and hardware from the shop tab.
         const availableMissions = Object.values(gameState.missions).filter(m => !m.completed);
 
         if (availableMissions.length === 0) {
-            printToOutput("No new messages. You have completed all available missions!");
+            triggerGameEnding();
             return;
         }
 
@@ -805,6 +813,10 @@ Type <span class="highlight">report</span> or <span class="highlight">deploy</sp
         ramUsageEl.textContent = `${gameState.resources.ram.usage}% of ${gameState.resources.ram.max}`;
         cpuBar.style.width = `${(gameState.resources.cpu.usage / gameState.resources.cpu.max) * 100}%`;
         ramBar.style.width = `${(gameState.resources.ram.usage / gameState.resources.ram.max) * 100}%`;
+        
+        const completedMissions = Object.values(gameState.missions).filter(m => m.completed).length;
+        const totalMissions = Object.keys(gameState.missions).length;
+        missionCounterEl.textContent = `${completedMissions}/${totalMissions}`;
 
         // Shop - Tools
         shopToolsContainer.innerHTML = '';
@@ -936,17 +948,71 @@ Type <span class="highlight">report</span> or <span class="highlight">deploy</sp
                 setTimeout(printLine, 20);
             } else {
                 input.disabled = false;
-                input.focus();
+                if (gameState.gameOver) {
+                    input.disabled = true;
+                }
                 if (onComplete) onComplete();
             }
         }
         printLine();
     }
+    
+    function triggerGameEnding() {
+        gameState.gameOver = true;
+        let endingText = '';
+
+        const wh = gameState.whiteHatRep;
+        const bh = gameState.blackHatRep;
+        const heat = gameState.heat;
+
+        if (wh > bh && (wh - bh > 5)) {
+            // White Hat Ending
+            endingText = `
+<span class="white-hat">--- THE WHITE HAT ---</span>
+Your reputation as a reliable and ethical security expert has grown.
+You're offered a lucrative position as the head of cybersecurity for a major tech firm.
+You trade your terminal for a corner office, using your skills to build defenses rather than tear them down.
+The digital world is a little safer, thanks to you.
+            `;
+        } else if (bh > wh && (bh - wh > 5)) {
+            if (heat > 80) {
+                // Black Hat Busted Ending
+                endingText = `
+<span class="black-hat">--- THE GHOST IN THE WIRES ---</span>
+You became a legend in the digital underworld, a ghost who could get any data, for the right price.
+But legends attract attention. Your heat was too high.
+As you read this, sirens are wailing outside your door. A tactical team is about to breach.
+There's no escape. Your time as Gray-Fox is over.
+                `;
+            } else {
+                // Black Hat Success Ending
+                endingText = `
+<span class="black-hat">--- THE GHOST IN THE WIRES ---</span>
+You became a legend in the digital underworld, a ghost who could get any data, for the right price.
+You were smart, you were careful. You knew when to take risks and when to lay low.
+With millions in untraceable crypto, you wipe your servers one last time and disappear.
+A new life awaits, bought and paid for by ones and zeroes.
+                `;
+            }
+        } else {
+            // Gray Hat Ending
+            endingText = `
+<span class="highlight">--- THE GRAY-FOX ---</span>
+You never chose a side. You worked for corporations and criminals, for justice and for profit.
+You became a myth, a digital mercenary whose true motives were never understood.
+Some call you a hero, others a villain. You know the truth: you're just a survivor.
+The net is vast, and there's always another contract waiting for someone with your skills.
+            `;
+        }
+
+        endingText += `\n\n<span class="highlight">GAME OVER. Refresh to play again.</span>`;
+        typewriterEffect(endingText);
+    }
 
     // --- Game Start & Data Loaders ---
     function startGame() {
         const welcomeMessage = `
-Booting Gray-Fox OS v4.7...
+Booting Gray-Fox OS v4.9...
 Kernel loaded. Resource monitor active.
 Network connection secured... OK
 
