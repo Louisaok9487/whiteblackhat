@@ -106,16 +106,51 @@
             background-color: var(--sidebar-bg);
             border-left: 2px solid var(--sidebar-border);
             padding: 1rem;
-            overflow-y: auto;
             height: 100vh;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #sidebar-tabs {
+            display: flex;
+            border: 1px solid var(--sidebar-border);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .tab-button {
+            flex-grow: 1;
+            padding: 0.75rem 0.5rem;
+            background-color: var(--button-bg);
+            color: #aaa;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        .tab-button.active {
+            background-color: var(--button-hover-bg);
+            color: var(--text-color);
+        }
+
+        #sidebar-content {
+            padding-top: 1rem;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
         }
 
         .sidebar-section {
             margin-bottom: 1.5rem;
-            border: 1px solid var(--sidebar-border);
-            border-radius: 5px;
-            padding: 1rem;
         }
         .sidebar-section h3 {
             margin-top: 0;
@@ -204,30 +239,41 @@
         </div>
     </div>
     <div id="sidebar">
-        <div id="status-section" class="sidebar-section">
-            <h3>Status</h3>
-            <div id="status-display">
-                 <span>💰 Money: $<span id="money">0</span></span>
-                 <span>😇 White Hat: <span id="white-hat-rep">0</span></span>
-                 <span>😈 Black Hat: <span id="black-hat-rep">0</span></span>
-            </div>
-             <div id="heat-display">
-                <span>Heat Level:</span>
-                <div id="heat-bar-container">
-                    <div id="heat-bar"></div>
+        <div id="sidebar-tabs">
+            <button class="tab-button active" data-tab="status">Status</button>
+            <button class="tab-button" data-tab="shop">Shop</button>
+            <button class="tab-button" data-tab="faction">Factions</button>
+        </div>
+        <div id="sidebar-content">
+            <div id="status-panel" class="tab-panel active">
+                <div class="sidebar-section">
+                    <h3>Vitals</h3>
+                    <div id="status-display">
+                         <span>💰 Money: $<span id="money">0</span></span>
+                         <span>😇 White Hat: <span id="white-hat-rep">0</span></span>
+                         <span>😈 Black Hat: <span id="black-hat-rep">0</span></span>
+                    </div>
+                     <div id="heat-display">
+                        <span>Heat Level:</span>
+                        <div id="heat-bar-container">
+                            <div id="heat-bar"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div id="shop-section" class="sidebar-section">
-            <h3>Hardware & Software Shop</h3>
-            <div id="shop-items"></div>
-        </div>
-
-        <div id="faction-section" class="sidebar-section">
-            <h3 id="faction-title">Faction Access</h3>
-            <div id="faction-content">
-                <p>Your reputation is not yet strong enough to attract the attention of major factions.</p>
+            <div id="shop-panel" class="tab-panel">
+                 <div class="sidebar-section">
+                    <h3>Hardware & Software</h3>
+                    <div id="shop-items"></div>
+                </div>
+            </div>
+            <div id="faction-panel" class="tab-panel">
+                <div class="sidebar-section">
+                    <h3 id="faction-title">Faction Access</h3>
+                    <div id="faction-content">
+                        <p>Your reputation is not yet strong enough to attract the attention of major factions.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -497,12 +543,33 @@ Check the sidebar on the right to purchase upgrades and access faction services.
     
     // --- Sidebar & Shop Logic ---
 
+    function setupTabs() {
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                document.querySelectorAll('.tab-panel').forEach(panel => {
+                    if (panel.id === `${tabName}-panel`) {
+                        panel.classList.add('active');
+                    } else {
+                        panel.classList.remove('active');
+                    }
+                });
+            });
+        });
+    }
+
     function updateSidebar() {
+        // Update Status Panel
         moneyEl.textContent = gameState.money.toLocaleString();
         whiteHatRepEl.textContent = gameState.whiteHatRep;
         blackHatRepEl.textContent = gameState.blackHatRep;
         heatBar.style.width = `${gameState.heat}%`;
 
+        // Update Shop Panel
         shopItemsContainer.innerHTML = '';
         for (const id in shopData) {
             const item = shopData[id];
@@ -534,6 +601,7 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             shopItemsContainer.appendChild(itemDiv);
         }
 
+        // Update Factions Panel
         const whRep = gameState.whiteHatRep;
         const bhRep = gameState.blackHatRep;
         let activeFaction = null;
@@ -806,6 +874,7 @@ Welcome, Gray-Fox 🧑‍💻
 Type <span class="highlight">help</span> for a list of available commands.
 Type <span class="highlight">mail</span> to check for assignments.
         `;
+        setupTabs();
         updateSidebar();
         typewriterEffect(welcomeMessage);
     }
