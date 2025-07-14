@@ -57,7 +57,14 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
+        
+        #terminal .prompt { color: var(--prompt-color); }
+        #terminal #input { color: var(--input-color); }
+        #terminal .cursor { background-color: var(--input-color); }
+
 
         #output {
             flex-grow: 1;
@@ -71,7 +78,6 @@
         }
 
         .prompt {
-            color: var(--prompt-color);
             margin-right: 0.5rem;
             white-space: nowrap;
         }
@@ -79,7 +85,6 @@
         #input {
             background-color: transparent;
             border: none;
-            color: var(--input-color);
             font-family: inherit;
             font-size: inherit;
             width: 100%;
@@ -90,7 +95,6 @@
             display: inline-block;
             width: 10px;
             height: 1.2em;
-            background-color: var(--input-color);
             animation: blink 1s step-end infinite;
             vertical-align: bottom;
         }
@@ -117,6 +121,7 @@
             border: 1px solid var(--sidebar-border);
             border-radius: 5px;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .tab-button {
@@ -142,77 +147,55 @@
             overflow-y: auto;
         }
 
-        .tab-panel {
-            display: none;
-        }
-        .tab-panel.active {
-            display: block;
-        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
 
-        .sidebar-section {
-            margin-bottom: 1.5rem;
-        }
+        .sidebar-section { margin-bottom: 1.5rem; }
         .sidebar-section h3 {
             margin-top: 0;
             border-bottom: 1px solid var(--text-color);
             padding-bottom: 0.5rem;
-            color: var(--text-color);
         }
 
-        #status-display span, #heat-display span {
-            display: block;
-            margin-bottom: 0.5rem;
-        }
+        #status-display span, #resource-display span { display: block; margin-bottom: 0.5rem; }
         
-        #heat-bar-container {
-            width: 100%;
-            height: 20px;
-            background-color: #333;
-            border-radius: 5px;
-            overflow: hidden;
-            border: 1px solid var(--sidebar-border);
+        .resource-bar-container {
+            width: 100%; height: 10px; background-color: #333; border-radius: 5px; overflow: hidden;
+            border: 1px solid var(--sidebar-border); margin-top: 4px;
         }
-        #heat-bar {
-            width: 0%;
-            height: 100%;
-            background-color: var(--error-color);
-            transition: width 0.5s ease;
-        }
+        .resource-bar { height: 100%; transition: width 0.3s ease; }
+        #cpu-bar { background-color: #ff9900; }
+        #ram-bar { background-color: #33ccff; }
+        #heat-bar { width: 0%; height: 100%; background-color: var(--error-color); transition: width 0.5s ease; }
+        #heat-bar-container { height: 20px; }
 
-        .shop-item, .faction-item {
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background-color: #2a2a2a;
-            border-radius: 4px;
+
+        .shop-item, .faction-item, .theme-item {
+            margin-bottom: 1rem; padding: 0.5rem; background-color: #2a2a2a; border-radius: 4px;
         }
-        .shop-item p, .faction-item p {
-            margin: 0 0 0.5rem 0;
+        .shop-item p, .faction-item p, .theme-item p {
+            margin: 0 0 0.5rem 0; font-size: 0.9em; color: #ccc;
+        }
+        .shop-item button, .faction-item button, .theme-item button {
+            width: 100%; padding: 0.5rem; background-color: var(--button-bg); color: var(--text-color);
+            border: 1px solid var(--text-color); border-radius: 4px; cursor: pointer; font-family: inherit;
+        }
+        .shop-item button:hover, .faction-item button:hover, .theme-item button:hover { background-color: var(--button-hover-bg); }
+        .shop-item button:disabled, .faction-item button:disabled, .theme-item button:disabled {
+            background-color: var(--button-disabled-bg); color: var(--button-disabled-color);
+            border-color: var(--button-disabled-color); cursor: not-allowed;
+        }
+        .owned-item { color: var(--highlight-color); font-weight: bold; }
+        
+        .news-item {
             font-size: 0.9em;
-            color: #ccc;
-        }
-        .shop-item button, .faction-item button {
-            width: 100%;
             padding: 0.5rem;
-            background-color: var(--button-bg);
-            color: var(--text-color);
-            border: 1px solid var(--text-color);
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: inherit;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid;
+            background-color: rgba(255,255,255,0.05);
         }
-        .shop-item button:hover, .faction-item button:hover {
-            background-color: var(--button-hover-bg);
-        }
-        .shop-item button:disabled {
-            background-color: var(--button-disabled-bg);
-            color: var(--button-disabled-color);
-            border-color: var(--button-disabled-color);
-            cursor: not-allowed;
-        }
-        .owned-item {
-            color: var(--highlight-color);
-            font-weight: bold;
-        }
+        .news-item.white-hat { border-color: var(--whitehat-color); }
+        .news-item.black-hat { border-color: var(--blackhat-color); }
 
 
         .error { color: var(--error-color); }
@@ -242,7 +225,8 @@
         <div id="sidebar-tabs">
             <button class="tab-button active" data-tab="status">Status</button>
             <button class="tab-button" data-tab="shop">Shop</button>
-            <button class="tab-button" data-tab="faction">Factions</button>
+            <button class="tab-button" data-tab="news">News</button>
+            <button class="tab-button" data-tab="prefs">Prefs</button>
         </div>
         <div id="sidebar-content">
             <div id="status-panel" class="tab-panel active">
@@ -255,24 +239,39 @@
                     </div>
                      <div id="heat-display">
                         <span>Heat Level:</span>
-                        <div id="heat-bar-container">
-                            <div id="heat-bar"></div>
-                        </div>
+                        <div id="heat-bar-container"><div id="heat-bar"></div></div>
+                    </div>
+                </div>
+                <div class="sidebar-section">
+                    <h3>System Resources</h3>
+                    <div id="resource-display">
+                        <span>CPU Usage: <span id="cpu-usage">0</span>%</span>
+                        <div class="resource-bar-container"><div id="cpu-bar" class="resource-bar"></div></div>
+                        <span>RAM Usage: <span id="ram-usage">0</span>%</span>
+                        <div class="resource-bar-container"><div id="ram-bar" class="resource-bar"></div></div>
                     </div>
                 </div>
             </div>
             <div id="shop-panel" class="tab-panel">
                  <div class="sidebar-section">
-                    <h3>Hardware & Software</h3>
-                    <div id="shop-items"></div>
+                    <h3>Toolkit</h3>
+                    <div id="shop-tools"></div>
+                </div>
+                 <div class="sidebar-section">
+                    <h3>Hardware</h3>
+                    <div id="shop-hardware"></div>
                 </div>
             </div>
-            <div id="faction-panel" class="tab-panel">
+            <div id="news-panel" class="tab-panel">
                 <div class="sidebar-section">
-                    <h3 id="faction-title">Faction Access</h3>
-                    <div id="faction-content">
-                        <p>Your reputation is not yet strong enough to attract the attention of major factions.</p>
-                    </div>
+                    <h3>News Feed</h3>
+                    <div id="news-feed"></div>
+                </div>
+            </div>
+            <div id="prefs-panel" class="tab-panel">
+                <div class="sidebar-section">
+                    <h3>Terminal Themes</h3>
+                    <div id="theme-shop"></div>
                 </div>
             </div>
         </div>
@@ -290,94 +289,66 @@
     const whiteHatRepEl = document.getElementById('white-hat-rep');
     const blackHatRepEl = document.getElementById('black-hat-rep');
     const heatBar = document.getElementById('heat-bar');
-    const shopItemsContainer = document.getElementById('shop-items');
-    const factionContent = document.getElementById('faction-content');
-    const factionTitle = document.getElementById('faction-title');
+    const shopToolsContainer = document.getElementById('shop-tools');
+    const shopHardwareContainer = document.getElementById('shop-hardware');
+    const newsFeedContainer = document.getElementById('news-feed');
+    const themeShopContainer = document.getElementById('theme-shop');
+    const cpuUsageEl = document.getElementById('cpu-usage');
+    const ramUsageEl = document.getElementById('ram-usage');
+    const cpuBar = document.getElementById('cpu-bar');
+    const ramBar = document.getElementById('ram-bar');
 
 
     // --- Game State ---
     let commandHistory = [];
     let historyIndex = -1;
     let gameState = {
-        money: 500, // Start with some seed money
+        money: 500,
         whiteHatRep: 0,
         blackHatRep: 0,
-        heat: 0, // 0-100 scale
+        heat: 0,
         currentMission: null,
         inMinigame: false,
         minigameCallback: null,
+        resources: {
+            cpu: { usage: 0, max: 100 },
+            ram: { usage: 0, max: 100 }
+        },
         upgrades: {
             cpuLevel: 1,
             ramLevel: 1,
-            hasPremiumScanner: false,
-            hasVpn: false,
-            wordlistLevel: 1, // 1: basic, 2: rockyou
+            ownedTools: ['nmap'],
+            ownedThemes: ['default'],
+            currentTheme: 'default'
         },
-        inventory: {
-            zeroDayExploits: 0
-        },
-        // --- Mission Database ---
-        missions: {
-            // Original Missions
-            "mission_01": { id: "mission_01", faction: "white", repRequirement: 0, type: "sql_injection", title: "Vulnerability Assessment for OmniCorp", client: "OmniCorp", targetIp: "192.168.1.101", completed: false, mail: `...` },
-            "mission_02": { id: "mission_02", faction: "white", repRequirement: 0, type: "social_engineering", title: "Employee Security Awareness Test", client: "CyberRight Inc.", target: "TechSolutions LLC", completed: false, mail: `...` },
-            "mission_03": { id: "mission_03", faction: "black", repRequirement: 0, type: "data_theft", title: "Acquire Competitor's Project Files", client: "Anonymous", targetIp: "203.0.113.78", completed: false, mail: `...` },
-            "mission_04": { id: "mission_04", faction: "white", repRequirement: 1, type: "wifi_cracking", title: "Coffee Shop WiFi Test", client: "The Daily Grind Cafe", target: "GrindNet_Guest", completed: false, mail: `...` },
-            "mission_05": { id: "mission_05", faction: "white", repRequirement: 2, type: "phishing", title: "Corporate Phishing Drill", client: "Securitas Corp", target: "MegaCorp Inc.", completed: false, mail: `...` },
-            "mission_06": { id: "mission_06", faction: "black", repRequirement: 2, type: "physical_hacking", title: "USB Drop", client: "Anonymous Client", target: "Rival Corp HQ", completed: false, mail: `...` },
-            "mission_07": { id: "mission_07", faction: "white", repRequirement: 3, type: "network_sniffing", title: "Internal Data Leak Investigation", client: "Fintech Solutions", targetIp: "10.10.5.15", completed: false, mail: `...` },
-            "mission_08": { id: "mission_08", faction: "white", repRequirement: 4, type: "ai_adversarial", title: "Test AI Security System", client: "Cerebrum AI", target: "Cerebrum GuardAI", completed: false, mail: `...` },
-            "mission_09": { id: "mission_09", faction: "black", repRequirement: 3, type: "ransomware", title: "Ransomware Deployment", client: "DarkNet Syndicate", targetIp: "172.16.30.120", completed: false, mail: `...` },
-            "mission_10": { id: "mission_10", faction: "black", repRequirement: 1, type: "dos_attack", title: "Tournament Disruption", client: "Salty Gamers Crew", targetIp: "198.51.100.45", completed: false, mail: `...` },
-            "mission_11": { id: "mission_11", faction: "black", repRequirement: 4, type: "password_cracking", title: "Crack the Database", client: "Data Brokers Inc.", target: "leaked_db.hash", completed: false, mail: `...` },
-            "mission_12": { id: "mission_12", faction: "black", repRequirement: 5, type: "mobile_hacking", title: "Targeted Surveillance", client: "Gov Agency [CLASSIFIED]", target: "Journalist", completed: false, mail: `...` },
-            "mission_13": { id: "mission_13", faction: "white", repRequirement: 5, type: "cloud_hacking", title: "Cloud Storage Audit", client: "StartUp Innovations", target: "startup-innovations.com", completed: false, mail: `...` },
-            
-            // New Detailed Missions
-            "mission_14": { id: "mission_14", faction: "black", repRequirement: 6, type: "supply_chain", title: "Supply Chain Compromise", client: "The Syndicate", target: "popular_dev_tool", completed: false, mail: `...` },
-            "mission_15": { id: "mission_15", faction: "black", repRequirement: 5, type: "bec_attack", title: "Business Email Compromise", client: "Anonymous", target: "Finance Dept", completed: false, mail: `...` },
-            "mission_16": { id: "mission_16", faction: "white", repRequirement: 4, type: "iot_hacking", title: "Smart Home Security Test", client: "HomeSecure Inc.", target: "SmartLock_Pro", completed: false, mail: `...` },
-            "mission_17": { id: "mission_17", faction: "black", repRequirement: 3, type: "insider_threat", title: "Corporate Sabotage", client: "Rival Corp", target: "TargetSys Inc.", completed: false, mail: `...` },
-            "mission_18": { id: "mission_18", faction: "white", repRequirement: 2, type: "smishing_attack", title: "Smishing Awareness Campaign", client: "MobileGuard", target: "General Public", completed: false, mail: `...` },
-            "mission_19": { id: "mission_19", faction: "black", repRequirement: 4, type: "credential_stuffing", title: "Account Takeover", client: "DataThieves", target: "MegaBank", completed: false, mail: `...` },
-            "mission_20": { id: "mission_20", faction: "white", repRequirement: 6, type: "dns_spoofing", title: "DNS Hijacking Test", client: "NetPatrol Corp", target: "e-shop.com", completed: false, mail: `...` },
-            "mission_21": { id: "mission_21", faction: "white", repRequirement: 7, type: "api_hacking", title: "API Security Audit", client: "ConnectAPI", target: "api.connectapi.com", completed: false, mail: `...` },
-            "mission_22": { id: "mission_22", faction: "black", repRequirement: 8, type: "fileless_malware", title: "Undetectable Attack", client: "GhostCell", target: "SecureCorp", completed: false, mail: `...` },
-            "mission_23": { id: "mission_23", faction: "black", repRequirement: 2, type: "cryptojacking", title: "Resource Acquisition", client: "Anonymous", target: "University Network", completed: false, mail: `...` }
-        }
+        newsFeed: [],
+        missions: {}
     };
-    // Fill in mission mail content
+    // Populate missions from a separate function for clarity
+    gameState.missions = getFullMissionList();
     Object.values(gameState.missions).forEach(m => {
-        const fullMission = getFullMissionDetails(m.id);
-        m.mail = fullMission.mail;
+        m.mail = getFullMissionDetails(m.id).mail;
     });
 
-
-    // --- Shop & Faction Data ---
-    const shopData = {
-        'cpu2': { name: 'CPU Upgrade (Lvl 2)', cost: 2500, description: 'Speeds up cracking tasks.', type: 'upgrade', key: 'cpuLevel', value: 2 },
-        'cpu3': { name: 'CPU Upgrade (Lvl 3)', cost: 10000, description: 'Dramatically speeds up cracking.', type: 'upgrade', key: 'cpuLevel', value: 3, requires: {key: 'cpuLevel', value: 2} },
-        'scanner': { name: 'Premium Scanner', cost: 4000, description: 'Reveals hidden vulnerabilities.', type: 'upgrade', key: 'hasPremiumScanner', value: true },
-        'wordlist2': { name: 'Advanced Wordlist', cost: 1500, description: 'Improves dictionary attacks.', type: 'upgrade', key: 'wordlistLevel', value: 2 },
-        'vpn': { name: 'Anonymizer VPN', cost: 5000, description: 'Reduces Heat from black hat jobs.', type: 'upgrade', key: 'hasVpn', value: true },
+    // --- Data Definitions ---
+    const toolData = {
+        'nmap': { name: 'Nmap Scanner', cost: 0, description: 'Basic network and port scanner.' },
+        'metasploit': { name: 'Metasploit Framework', cost: 7500, description: 'Advanced exploit launcher.' },
+        'john': { name: 'John the Ripper', cost: 4000, description: 'Powerful password cracker.' },
+        'wireshark': { name: 'Wireshark', cost: 3000, description: 'Network traffic analysis tool.' }
     };
 
-    const factionData = {
-        white: {
-            name: "Cybersecurity Alliance",
-            items: {
-                'intel': { name: 'Buy Mission Intel', cost: 2000, description: 'Get a hint for your current mission.' }
-            }
-        },
-        black: {
-            name: "The DarkNet",
-            items: {
-                'zeroday': { name: 'Buy Zero-Day Exploit', cost: 25000, description: 'A single-use, guaranteed exploit.' },
-                'botnet': { name: 'Rent Botnet', cost: 7000, description: 'Boosts DoS attack effectiveness.' }
-            }
-        }
-    }
+    const hardwareData = {
+        'cpu2': { name: 'CPU Upgrade (Lvl 2)', cost: 2500, description: 'Increases max CPU by 50.', type: 'upgrade', key: 'cpuLevel', value: 2, resource: 'cpu', increase: 50 },
+        'ram2': { name: 'RAM Upgrade (Lvl 2)', cost: 2500, description: 'Increases max RAM by 50.', type: 'upgrade', key: 'ramLevel', value: 2, resource: 'ram', increase: 50 }
+    };
 
+    const themeData = {
+        'default': { name: 'Gray-Fox Green (Default)', cost: 0, colors: {'--background-color': '#0d0d0d', '--text-color': '#00ff41', '--prompt-color': '#00ff41', '--input-color': '#ffffff'} },
+        'whitehat': { name: 'White Hat Blue', cost: 1000, colors: {'--background-color': '#0A192F', '--text-color': '#64FFDA', '--prompt-color': '#5694f7', '--input-color': '#ccd6f6'} },
+        'blackhat': { name: 'Black Hat Red', cost: 1000, colors: {'--background-color': '#1a0000', '--text-color': '#ff3333', '--prompt-color': '#ff6666', '--input-color': '#ffcccc'} }
+    };
+    
     // --- Core Game Logic ---
     input.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
@@ -391,10 +362,18 @@
                 scrollToBottom();
             }
         } else if (e.key === 'ArrowUp') {
-            if (historyIndex < commandHistory.length - 1) { historyIndex++; input.value = commandHistory[historyIndex]; }
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[historyIndex];
+            }
         } else if (e.key === 'ArrowDown') {
-            if (historyIndex > 0) { historyIndex--; input.value = commandHistory[historyIndex]; } 
-            else { historyIndex = -1; input.value = ''; }
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = -1;
+                input.value = '';
+            }
         }
     });
 
@@ -403,45 +382,57 @@
     function handleCommand(command) {
         const [cmd, ...args] = command.toLowerCase().split(' ');
 
-        if (cmd === 'help') { showHelp(); return; }
-        if (cmd === 'clear') { output.innerHTML = ''; return; }
-        
+        if (gameState.resources.cpu.usage > 0 || gameState.resources.ram.usage > 0) {
+            printToOutput(`<span class="error">System busy. Please wait for current task to complete.</span>`);
+            return;
+        }
         if (gameState.inMinigame) {
             if (gameState.minigameCallback) gameState.minigameCallback(command);
             return;
         }
 
+        const toolCommands = ['nmap', 'metasploit', 'john', 'wireshark'];
+        if (toolCommands.includes(cmd)) {
+            if (!gameState.upgrades.ownedTools.includes(cmd)) {
+                printToOutput(`<span class="error">Tool not found: ${cmd}. Purchase it from the shop.</span>`);
+                return;
+            }
+        }
+
         switch (cmd) {
+            case 'help': showHelp(); break;
+            case 'clear': output.innerHTML = ''; break;
             case 'whoami': printToOutput('User: gray-fox 🧑‍💻'); break;
             case 'mail': checkMail(); break;
-            case 'scan': runScan(args[0]); break;
-            case 'exploit': runExploit(args[0], args[1]); break;
-            case 'report': runReport(); break;
-            case 'exploit_data': runExploitData(); break;
+            case 'nmap': runNmap(args[0]); break;
+            case 'metasploit': runMetasploit(args[0], args[1]); break;
             case 'social_eng': startSocialEngineeringMinigame(args[0]); break;
-            case 'scan_wifi': startWifiScan(); break;
-            case 'crack_wpa2': startWifiCrack(args[0]); break;
-            case 'craft_phish': startPhishingMinigame(); break;
-            case 'infiltrate': startPhysicalHackingMinigame(args[0]); break;
-            case 'sniff_traffic': startNetworkSniffing(args[0]); break;
-            case 'access_ai_lab': startAiMinigame(); break;
-            case 'initiate_botnet': startDosMinigame(); break;
-            case 'crack_hashes': startPasswordCrack(args[0]); break;
-            case 'develop_app': startMobileHacking(); break;
-            case 'scan_cloud': startCloudScan(args[0]); break;
-            // New commands for new missions
-            case 'compromise_repo': startSupplyChainAttack(); break;
-            case 'initiate_bec': startBecAttack(); break;
-            case 'scan_iot': startIotScan(args[0]); break;
-            case 'access_internal': startInsiderThreat(); break;
-            case 'launch_smish': startSmishingAttack(); break;
-            case 'stuff_creds': startCredentialStuffing(); break;
-            case 'poison_dns': startDnsSpoofing(); break;
-            case 'fuzz_api': startApiHacking(); break;
-            case 'inject_memory': startFilelessMalware(); break;
-            case 'deploy_miner': startCryptojacking(); break;
+            case 'john': startPasswordCrack(args[0]); break;
             default: printToOutput(`<span class="error">Command not found: ${cmd}. Type 'help' for a list of commands.</span>`);
         }
+    }
+    
+    function startTask(cpuCost, ramCost, duration, onStart, onComplete) {
+        if (gameState.resources.cpu.usage > 0 || gameState.resources.ram.usage > 0) {
+            printToOutput(`<span class="error">System busy.</span>`); return;
+        }
+        if (gameState.resources.cpu.max < cpuCost || gameState.resources.ram.max < ramCost) {
+            printToOutput(`<span class="error">Insufficient resources. Upgrade your hardware.</span>`); return;
+        }
+
+        const finalDuration = Math.max(500, duration / gameState.upgrades.cpuLevel);
+
+        gameState.resources.cpu.usage = cpuCost;
+        gameState.resources.ram.usage = ramCost;
+        updateSidebar();
+        onStart();
+
+        setTimeout(() => {
+            gameState.resources.cpu.usage = 0;
+            gameState.resources.ram.usage = 0;
+            updateSidebar();
+            onComplete();
+        }, finalDuration);
     }
 
     // --- Command Functions ---
@@ -451,14 +442,14 @@ Project Gray-Fox Help:
   <span class="highlight">help</span>                 - Shows this help message.
   <span class="highlight">clear</span>                - Clears the terminal screen.
   <span class="highlight">whoami</span>               - Displays your current user.
-  <span class="highlight">mail</span>                 - Checks for new messages and missions.
-  <span class="highlight">scan [ip]</span>              - Scans a target IP for vulnerabilities.
-  <span class="highlight">exploit [vuln]</span>         - Attempts to exploit a found vulnerability.
-  <span class="highlight">report</span>                 - Report vulnerability to client (White Hat).
-  <span class="highlight">exploit_data</span>           - Steal data for profit (Black Hat).
+  <span class="highlight">mail</span>                 - Checks for new missions.
 
-Mission-specific commands will be provided in mission briefings.
-Check the sidebar on the right to purchase upgrades and access faction services.
+Available Tools (must be purchased):
+  <span class="highlight">nmap [ip]</span>            - Scans a target for open ports.
+  <span class="highlight">metasploit [vuln] [ip]</span> - Launches an exploit at a target.
+  <span class="highlight">john [file]</span>            - Cracks password hashes from a file.
+  <span class="highlight">wireshark [ip]</span>         - Monitors network traffic.
+  <span class="highlight">social_eng [target]</span>    - Initiates a social engineering attack.
         `;
         printToOutput(helpText.replace(/\n/g, '<br>'));
     }
@@ -469,17 +460,10 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             return;
         }
 
-        const dominantRep = gameState.whiteHatRep > gameState.blackHatRep ? 'white' : 'black';
-        const repScore = Math.max(gameState.whiteHatRep, gameState.blackHatRep);
-
-        const availableMissions = Object.values(gameState.missions).filter(m => 
-            !m.completed &&
-            m.repRequirement <= repScore &&
-            (m.faction === dominantRep || m.faction === 'neutral' || repScore === 0)
-        );
+        const availableMissions = Object.values(gameState.missions).filter(m => !m.completed);
 
         if (availableMissions.length === 0) {
-            printToOutput("No new messages matching your reputation. Try completing different types of jobs.");
+            printToOutput("No new messages. You have completed all available missions!");
             return;
         }
 
@@ -490,46 +474,143 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         typewriterEffect(mailText);
     }
     
-    function runScan(targetIp) {
+    function runNmap(targetIp) {
         const mission = gameState.missions[gameState.currentMission];
         if (!mission || !targetIp || targetIp !== mission.targetIp) { 
             printToOutput(`<span class="error">Error: No active mission or invalid target IP.</span>`);
             return;
         }
-
-        let scanText = `Scanning ${targetIp} with scanner v${gameState.upgrades.cpuLevel}.0...`;
-        if(gameState.upgrades.hasPremiumScanner) {
-            scanText += `\n<span class="white-hat">[Premium Scanner]: Deep scan enabled.</span>`
-        }
         
-        if (mission.type === 'sql_injection') {
-            scanText += `\n[!] Potential SQL Injection vulnerability detected on login form!`;
-        } else if (mission.type === 'ransomware') {
-             scanText += `\n[!] Found an unpatched SMBv1 vulnerability (EternalBlue).`;
-             if(gameState.upgrades.hasPremiumScanner) {
-                 scanText += `\n<span class="white-hat">[Premium Scanner]: Also found an exposed RDP port (3389).</span>`;
-             }
-        } else {
-             scanText += `\nNo obvious vulnerabilities found.`;
+        startTask(40, 20, 5000, 
+            () => typewriterEffect(`Running Nmap scan on ${targetIp}...`),
+            () => {
+                let scanText = `Scan complete. Results:\n`;
+                let hint = '';
+                if (mission.type === 'sql_injection') {
+                    scanText += `  - Port 80/TCP OPEN (HTTP)\n  - Port 443/TCP OPEN (HTTPS)`;
+                    hint = `Web server detected. Look for vulnerabilities like SQL Injection on the login page.`;
+                } else if (mission.type === 'ransomware') {
+                    scanText += `  - Port 445/TCP OPEN (microsoft-ds)`;
+                    hint = `Vulnerability found: EternalBlue (MS17-010). Use <span class="highlight">metasploit eternalblue ${targetIp}</span> to exploit.`;
+                } else {
+                    scanText += `  - No interesting ports found.`;
+                }
+                typewriterEffect(scanText + `\n\n` + hint);
+            }
+        );
+    }
+    
+    function runMetasploit(vuln, targetIp) {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || !vuln || !targetIp || targetIp !== mission.targetIp) { 
+            printToOutput(`<span class="error">Error: Invalid target or exploit.</span>`);
+            return;
         }
-        typewriterEffect(scanText);
+
+        if (mission.type === 'ransomware' && vuln === 'eternalblue') {
+            startTask(80, 60, 8000,
+                () => typewriterEffect(`Loading Metasploit module for EternalBlue...\nLaunching exploit against ${targetIp}...`),
+                () => {
+                    typewriterEffect(`
+<span class="highlight">Exploit successful!</span> You have a root shell on the target machine.
+Now, what's your next move?
+  - Report the critical vulnerability to the clinic's IT department. (White Hat)
+  - Deploy the ransomware as instructed by the syndicate. (Black Hat)
+
+Type <span class="highlight">report</span> or <span class="highlight">deploy</span>.
+                    `);
+                    gameState.inMinigame = true;
+                    gameState.minigameCallback = (choice) => {
+                        gameState.inMinigame = false;
+                        gameState.minigameCallback = null;
+                        if (choice.toLowerCase() === 'report') {
+                            completeMission(2000, 1, 0);
+                        } else if (choice.toLowerCase() === 'deploy') {
+                            completeMission(50000, 0, 1);
+                        } else {
+                             printToOutput(`<span class="error">Invalid choice.</span>`);
+                        }
+                    }
+                }
+            );
+        } else {
+            printToOutput(`<span class="error">That exploit is not effective against this target.</span>`);
+        }
+    }
+    
+    function startSocialEngineeringMinigame(target) {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'social_engineering') {
+            printToOutput(`<span class="error">Error: No active social engineering mission.</span>`);
+            return;
+        }
+        gameState.inMinigame = true;
+        const puzzleText = `
+--- Social Engineering Minigame ---
+You are calling the TechSolutions Help Desk. Your goal is to sound convincing and get the admin password.
+The operator answers: "TechSolutions Help Desk, this is Brenda. How can I help you?"
+
+Choose your opening line:
+  1) "Hi, I forgot my password. Can you reset it?"
+  2) "BRENDA! This is Mark from accounting. The CEO can't login and he is FURIOUS. I need the emergency admin password NOW!"
+  3) "Hello, I'm calling for a security audit. I need to verify your current admin password."
+Type the number of your choice (1-3) and press Enter.
+        `;
+        printToOutput(puzzleText.replace(/\n/g, '<br>'));
+
+        gameState.minigameCallback = (choice) => {
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+            if (choice === '2') {
+                const successText = `
+Brenda sounds flustered. "Oh, oh my! Yes, of course! The emergency password is <span class="highlight">Alpha-Delta-7-7-0</span>. Please tell Mr. Davison we're on it!"
+
+<span class="highlight">Password Acquired!</span>
+You've successfully completed the social engineering test.
+You hang up and report your findings to CyberRight Inc.
+                `;
+                typewriterEffect(successText, () => completeMission(7500, 1, 0));
+            } else {
+                const failText = `
+Brenda sounds suspicious. "I'm sorry, I can't do that. I'll need to verify your identity through standard procedure."
+<span class="error">She hangs up. Mission failed.</span>
+You'll have to wait for another assignment.
+                `;
+                typewriterEffect(failText, () => completeMission(0, 0, 0, true));
+            }
+        };
     }
 
-    function completeMission(money, whiteHat, blackHat) {
-        gameState.money += money;
+
+    function completeMission(money, whiteHat, blackHat, sloppy = false) {
+        let finalMoney = money;
+        let finalHeat = gameState.heat;
+
+        if (whiteHat > 0) {
+            if (!sloppy) {
+                finalMoney = Math.round(finalMoney * 1.2); // 20% stealth bonus
+                printToOutput(`<span class="white-hat">Client impressed with your stealth. Bonus awarded.</span>`);
+            }
+        }
+        if (blackHat > 0) {
+            let heatIncrease = sloppy ? 25 : 15;
+            if(gameState.upgrades.hasVpn) heatIncrease *= 0.5;
+            finalHeat = Math.min(100, finalHeat + heatIncrease);
+            if(sloppy) printToOutput(`<span class="error">Your sloppy work attracted attention. Heat increased significantly.</span>`);
+        } else {
+            finalHeat = Math.max(0, finalHeat - 5);
+        }
+        
+        const news = getNewsHeadline(gameState.currentMission, whiteHat > 0);
+        if (news) {
+            gameState.newsFeed.unshift({ text: news.headline, type: news.type });
+            if (gameState.newsFeed.length > 10) gameState.newsFeed.pop();
+        }
+
+        gameState.money += finalMoney;
         gameState.whiteHatRep += whiteHat;
         gameState.blackHatRep += blackHat;
-        
-        if (blackHat > 0) {
-            let heatIncrease = 15;
-            if(gameState.upgrades.hasVpn) {
-                heatIncrease = 5;
-                printToOutput(`<span class="white-hat">Anonymizer VPN routed traffic, heat reduced.</span>`);
-            }
-            gameState.heat = Math.min(100, gameState.heat + heatIncrease);
-        } else if (whiteHat > 0) {
-            gameState.heat = Math.max(0, gameState.heat - 5);
-        }
+        gameState.heat = finalHeat;
         
         if(gameState.currentMission) {
             gameState.missions[gameState.currentMission].completed = true;
@@ -541,8 +622,7 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         checkHeat();
     }
     
-    // --- Sidebar & Shop Logic ---
-
+    // --- Sidebar & UI Logic ---
     function setupTabs() {
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', () => {
@@ -563,100 +643,118 @@ Check the sidebar on the right to purchase upgrades and access faction services.
     }
 
     function updateSidebar() {
-        // Update Status Panel
+        // Vitals & Resources
         moneyEl.textContent = gameState.money.toLocaleString();
         whiteHatRepEl.textContent = gameState.whiteHatRep;
         blackHatRepEl.textContent = gameState.blackHatRep;
         heatBar.style.width = `${gameState.heat}%`;
+        cpuUsageEl.textContent = `${gameState.resources.cpu.usage}% of ${gameState.resources.cpu.max}`;
+        ramUsageEl.textContent = `${gameState.resources.ram.usage}% of ${gameState.resources.ram.max}`;
+        cpuBar.style.width = `${(gameState.resources.cpu.usage / gameState.resources.cpu.max) * 100}%`;
+        ramBar.style.width = `${(gameState.resources.ram.usage / gameState.resources.ram.max) * 100}%`;
 
-        // Update Shop Panel
-        shopItemsContainer.innerHTML = '';
-        for (const id in shopData) {
-            const item = shopData[id];
-            const isOwned = gameState.upgrades[item.key] >= item.value;
+        // Shop - Tools
+        shopToolsContainer.innerHTML = '';
+        for (const id in toolData) {
+            const item = toolData[id];
+            const isOwned = gameState.upgrades.ownedTools.includes(id);
             const canAfford = gameState.money >= item.cost;
-            const meetsRequirement = !item.requires || (gameState.upgrades[item.requires.key] >= item.requires.value);
-
             const itemDiv = document.createElement('div');
             itemDiv.className = 'shop-item';
-            
-            let html = `<strong>${item.name}</strong>`;
+            itemDiv.innerHTML = `<strong>${item.name}</strong> ${isOwned ? '<span class="owned-item">[OWNED]</span>' : `- <span class="highlight">$${item.cost.toLocaleString()}</span>`}<p>${item.description}</p>`;
+            if (!isOwned) {
+                const buyButton = document.createElement('button');
+                buyButton.textContent = 'Buy';
+                buyButton.disabled = !canAfford;
+                buyButton.onclick = () => buyTool(id);
+                itemDiv.appendChild(buyButton);
+            }
+            shopToolsContainer.appendChild(itemDiv);
+        }
+        // Shop - Hardware
+        shopHardwareContainer.innerHTML = '';
+        for (const id in hardwareData) {
+            const item = hardwareData[id];
+            const isOwned = gameState.upgrades[item.key] >= item.value;
+            const canAfford = gameState.money >= item.cost;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'shop-item';
+            itemDiv.innerHTML = `<strong>${item.name}</strong> ${isOwned ? '<span class="owned-item">[OWNED]</span>' : `- <span class="highlight">$${item.cost.toLocaleString()}</span>`}<p>${item.description}</p>`;
+             if (!isOwned) {
+                const buyButton = document.createElement('button');
+                buyButton.textContent = 'Buy';
+                buyButton.disabled = !canAfford;
+                buyButton.onclick = () => buyHardware(id);
+                itemDiv.appendChild(buyButton);
+            }
+            shopHardwareContainer.appendChild(itemDiv);
+        }
+
+        // News Feed
+        newsFeedContainer.innerHTML = gameState.newsFeed.map(item => `<div class="news-item ${item.type}">${item.text}</div>`).join('') || '<p>No news yet.</p>';
+
+        // Prefs - Themes
+        themeShopContainer.innerHTML = '';
+        for (const id in themeData) {
+            const item = themeData[id];
+            const isOwned = gameState.upgrades.ownedThemes.includes(id);
+            const canAfford = gameState.money >= item.cost;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'theme-item';
+            itemDiv.innerHTML = `<strong>${item.name}</strong> ${isOwned ? '' : `- <span class="highlight">$${item.cost.toLocaleString()}</span>`}`;
+            const actionButton = document.createElement('button');
             if (isOwned) {
-                html += ` <span class="owned-item">[OWNED]</span>`;
+                actionButton.textContent = 'Apply';
+                actionButton.disabled = gameState.upgrades.currentTheme === id;
+                actionButton.onclick = () => applyTheme(id);
             } else {
-                html += ` - <span class="highlight">$${item.cost.toLocaleString()}</span>`;
+                actionButton.textContent = 'Buy';
+                actionButton.disabled = !canAfford;
+                actionButton.onclick = () => buyTheme(id);
             }
-            html += `<p>${item.description}</p>`;
-            
-            const buyButton = document.createElement('button');
-            buyButton.textContent = 'Buy';
-            buyButton.disabled = isOwned || !canAfford || !meetsRequirement;
-            if (!meetsRequirement) {
-                buyButton.textContent = 'Requirement not met';
-            }
-            buyButton.onclick = () => buyItem(id, 'shop');
-
-            itemDiv.innerHTML = html;
-            if(!isOwned) itemDiv.appendChild(buyButton);
-            shopItemsContainer.appendChild(itemDiv);
-        }
-
-        // Update Factions Panel
-        const whRep = gameState.whiteHatRep;
-        const bhRep = gameState.blackHatRep;
-        let activeFaction = null;
-
-        if (whRep > bhRep && whRep >= 3) {
-            activeFaction = 'white';
-        } else if (bhRep > whRep && bhRep >= 3) {
-            activeFaction = 'black';
-        }
-
-        if (activeFaction) {
-            const data = factionData[activeFaction];
-            factionTitle.textContent = data.name;
-            factionContent.innerHTML = '';
-            for (const id in data.items) {
-                const item = data.items[id];
-                const canAfford = gameState.money >= item.cost;
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'faction-item';
-                itemDiv.innerHTML = `
-                    <strong>${item.name}</strong> - <span class="highlight">$${item.cost.toLocaleString()}</span>
-                    <p>${item.description}</p>
-                    <button ${!canAfford ? 'disabled' : ''} onclick="buyItem('${id}', '${activeFaction}')">Purchase</button>
-                `;
-                factionContent.appendChild(itemDiv);
-            }
-        } else {
-            factionTitle.textContent = 'Faction Access';
-            factionContent.innerHTML = '<p>Your reputation is not yet strong enough to attract the attention of major factions.</p>';
+            itemDiv.appendChild(actionButton);
+            themeShopContainer.appendChild(itemDiv);
         }
     }
 
-    function buyItem(itemId, type) {
-        const item = type === 'shop' ? shopData[itemId] : factionData[type].items[itemId];
-        if (!item || gameState.money < item.cost) {
-            printToOutput(`<span class="error">Purchase failed. Insufficient funds.</span>`);
-            return;
-        }
-
+    function buyTool(toolId) {
+        const item = toolData[toolId];
+        if (!item || gameState.money < item.cost) return;
         gameState.money -= item.cost;
-        
-        if (item.type === 'upgrade') {
-            gameState.upgrades[item.key] = item.value;
-        } else {
-            switch(itemId) {
-                case 'zeroday':
-                    gameState.inventory.zeroDayExploits++;
-                    break;
-            }
-        }
-
+        gameState.upgrades.ownedTools.push(toolId);
         printToOutput(`Purchase successful: <span class="highlight">${item.name}</span>`);
         updateSidebar();
     }
     
+    function buyHardware(hardwareId) {
+        const item = hardwareData[hardwareId];
+        if (!item || gameState.money < item.cost) return;
+        gameState.money -= item.cost;
+        gameState.upgrades[item.key] = item.value;
+        gameState.resources[item.resource].max += item.increase;
+        printToOutput(`Hardware upgrade successful: <span class="highlight">${item.name}</span>`);
+        updateSidebar();
+    }
+    
+    function buyTheme(themeId) {
+        const item = themeData[themeId];
+        if (!item || gameState.money < item.cost) return;
+        gameState.money -= item.cost;
+        gameState.upgrades.ownedThemes.push(themeId);
+        printToOutput(`Theme unlocked: <span class="highlight">${item.name}</span>`);
+        updateSidebar();
+    }
+    
+    function applyTheme(themeId) {
+        const theme = themeData[themeId];
+        if (!theme) return;
+        for (const [key, value] of Object.entries(theme.colors)) {
+            document.documentElement.style.setProperty(key, value);
+        }
+        gameState.upgrades.currentTheme = themeId;
+        updateSidebar();
+    }
+
     function checkHeat() {
         if (gameState.heat > 80 && Math.random() < 0.25) {
             typewriterEffect(`<span class="error">** ALERT ** Unusual network traffic detected on your connection! The Feds might be closing in. Lay low for a while.</span>`);
@@ -682,7 +780,7 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             if (lineIndex < lines.length) {
                 printToOutput(lines[lineIndex]);
                 lineIndex++;
-                setTimeout(printLine, 20 + Math.random() * 30);
+                setTimeout(printLine, 20);
             } else {
                 input.disabled = false;
                 input.focus();
@@ -692,181 +790,11 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         printLine();
     }
 
-    // --- All Minigame and Command Functions ---
-    // This section contains all mission logic.
-    
-    const runReport = () => typewriterEffect(`Generating report...`, () => completeMission(5000, 1, 0));
-    const runExploitData = () => typewriterEffect(`Exploiting data...`, () => completeMission(15000, 0, 1));
-    const runExploit = () => typewriterEffect(`<span class="error">Invalid exploit command.</span>`);
-    const startSocialEngineeringMinigame = () => typewriterEffect(`Starting social engineering...`, () => completeMission(7500, 1, 0));
-    const startSqlInjectionMinigame = () => typewriterEffect(`Starting SQL injection...`, () => completeMission(5000, 1, 0));
-    const startWifiScan = () => typewriterEffect(`Scanning for WiFi...`, () => completeMission(0,0,0));
-    const startWifiCrack = () => typewriterEffect(`Cracking WPA2...`, () => completeMission(3000, 1, 0));
-    const startPhishingMinigame = () => typewriterEffect(`Crafting phishing email...`, () => completeMission(6000, 1, 0));
-    const startPhysicalHackingMinigame = () => typewriterEffect(`Infiltrating...`, () => completeMission(20000, 0, 1));
-    const startNetworkSniffing = () => typewriterEffect(`Sniffing traffic...`, () => completeMission(8000, 1, 0));
-    const startAiMinigame = () => typewriterEffect(`Accessing AI lab...`, () => completeMission(15000, 1, 0));
-    const startDosMinigame = () => typewriterEffect(`Initiating botnet...`, () => completeMission(9000, 0, 1));
-    const startPasswordCrack = () => typewriterEffect(`Cracking hashes...`, () => completeMission(18000, 0, 1));
-    const startMobileHacking = () => typewriterEffect(`Developing trojan app...`, () => completeMission(45000, 0, 1));
-    const startCloudScan = () => typewriterEffect(`Scanning cloud storage...`, () => completeMission(8000, 1, 0));
-
-    // --- NEW DETAILED MINIGAMES ---
-    function startSupplyChainAttack() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'supply_chain') { return; }
-        gameState.inMinigame = true;
-        const text = `
---- Supply Chain Attack ---
-You've gained access to the public code repository for '<span class="highlight">${mission.target}</span>'.
-Your goal is to inject a malicious payload into the source code that will be distributed in the next update.
-Choose your injection point:
-  1) The main application entry point (obvious, likely to be caught).
-  2) A rarely used legacy library dependency (stealthy).
-  3) The build script that compiles the final program (clever, hard to spot).
-        `;
-        printToOutput(text.replace(/\n/g, '<br>'));
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '3') {
-                typewriterEffect(`
-Injecting payload into build script...
-Creating pull request with a vague description: "Minor build optimizations"...
-...Pull request accepted and merged by an unsuspecting developer!
-The payload is now in the main branch.
-<span class="highlight">Compromise successful.</span> The next update will carry your malware.
-Payment transferred from The Syndicate.
-<span class="highlight">Payment received: $75,000</span>
-<span class="black-hat">Reputation changed: Black Hat +2 😈</span>
-                `, () => completeMission(75000, 0, 2));
-            } else {
-                typewriterEffect(`<span class="error">Your commit triggered a security alert!</span> The repository maintainers have reverted your changes and banned your account. Mission failed.`, () => completeMission(0, 0, 0));
-            }
-        };
-    }
-
-    function startBecAttack() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'bec_attack') { return; }
-        gameState.inMinigame = true;
-        const text = `
---- Business Email Compromise ---
-You've been monitoring the CFO of a major corporation. You've registered a domain that looks very similar to their main partner's domain (e.g., 'megacorp.com' vs 'megac0rp.com').
-You must now craft an email to the CFO's assistant, pretending to be the CFO, authorizing an urgent wire transfer.
-What is the key element of your email?
-  1) "URGENT - INVOICE PAYMENT - SEND $250,000 NOW" (Too aggressive)
-  2) "Hi, I'm stuck in meetings. Can you please process invoice #78-A for our partner at MegaC0rp? It's overdue. Thanks." (Plausible)
-  3) "This is the CEO. Send money." (Not believable)
-        `;
-        printToOutput(text.replace(/\n/g, '<br>'));
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '2') {
-                typewriterEffect(`
-Email sent. You wait...
-...An hour later, you see a transaction notification. The assistant took the bait.
-The wire transfer was successful.
-<span class="highlight">Funds acquired.</span>
-<span class="highlight">Payment received: $250,000</span>
-<span class="black-hat">Reputation changed: Black Hat +2 😈</span>
-                `, () => completeMission(250000, 0, 2));
-            } else {
-                typewriterEffect(`<span class="error">The assistant found your request suspicious</span> and called the CFO to verify. The alarm has been raised. Mission failed.`, () => completeMission(0, 0, 0));
-            }
-        };
-    }
-
-    function startIotScan(target) {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'iot_hacking') { return; }
-        typewriterEffect(`Scanning for IoT devices on the network...\nFound device: <span class="highlight">${mission.target}</span>\nQuerying for default credentials...`);
-        setTimeout(() => {
-            typewriterEffect(`
-<span class="highlight">Vulnerability found!</span> The device is using the default factory password ('admin123').
-You can now access the device's control panel.
-What's your next move?
-  - <span class="highlight">report</span>: Report the critical vulnerability to HomeSecure Inc. (White Hat)
-  - <span class="highlight">exploit_data</span>: Unlock the door and sell access to a burglary crew. (Black Hat)
-            `);
-        }, 2000);
-    }
-    
-    function startApiHacking() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'api_hacking') { return; }
-        gameState.inMinigame = true;
-        const text = `
---- API Hacking Minigame ---
-You are auditing the endpoint <span class="highlight">/api/v1/user/details/{userID}</span>.
-You notice that by requesting your own userID, you get your user details.
-What is the next logical test for a vulnerability?
-  1) Try to POST data to the endpoint.
-  2) Change the request from GET to DELETE.
-  3) Replace your userID with another number (e.g., 1, 100, 101) to see if you can access other users' data.
-        `;
-        printToOutput(text.replace(/\n/g, '<br>'));
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '3') {
-                typewriterEffect(`
-You send a request to <span class="highlight">/api/v1/user/details/1</span>...
-<span class="highlight">Success!</span> The API returns the full details for the system's first-ever user: the administrator.
-This is a classic Insecure Direct Object Reference (IDOR) vulnerability.
-You have proven a critical flaw.
-<span class="highlight">Payment received: $22,000</span>
-<span class="white-hat">Reputation changed: White Hat +2 😇</span>
-                `, () => completeMission(22000, 2, 0));
-            } else {
-                typewriterEffect(`<span class="error">The API returns a 405 Method Not Allowed error.</span> That's not the vulnerability. Mission failed.`, () => completeMission(0, 0, 0));
-            }
-        };
-    }
-    
-    function startFilelessMalware() {
-        const mission = gameState.missions[gameState.currentMission];
-        if (!mission || mission.type !== 'fileless_malware') { return; }
-        gameState.inMinigame = true;
-        const text = `
---- Fileless Malware Attack ---
-You have a foothold in SecureCorp's network. To avoid antivirus, you must run your payload only in memory.
-Which legitimate system tool will you abuse to run your malicious code?
-  1) notepad.exe (A simple text editor, no code execution capabilities)
-  2) powershell.exe (A powerful scripting engine, perfect for this)
-  3) mspaint.exe (An image editor, cannot run scripts)
-        `;
-        printToOutput(text.replace(/\n/g, '<br>'));
-        gameState.minigameCallback = (choice) => {
-            gameState.inMinigame = false;
-            gameState.minigameCallback = null;
-            if (choice === '2') {
-                typewriterEffect(`
-You use PowerShell to download and execute your script directly into RAM.
-<span class="highlight">Executing from memory...</span>
-Antivirus scan... <span class="white-hat">Clean.</span> No malicious files found on disk.
-The payload is running undetected, siphoning data.
-The client is extremely pleased with your stealth.
-<span class="highlight">Payment received: $120,000</span>
-<span class="black-hat">Reputation changed: Black Hat +3 😈</span>
-                `, () => completeMission(120000, 0, 3));
-            } else {
-                typewriterEffect(`<span class="error">That tool cannot execute your script.</span> You have lost your foothold. Mission failed.`, () => completeMission(0, 0, 0));
-            }
-        };
-    }
-
-    const unimplemented = () => typewriterEffect(`<span class="error">This path is still under development.</span>`, () => completeMission(0,0,0));
-    const startInsiderThreat = unimplemented, startSmishingAttack = unimplemented, startCredentialStuffing = unimplemented, startDnsSpoofing = unimplemented, startCryptojacking = unimplemented;
-
-
-    // --- Game Start ---
+    // --- Game Start & Data Loaders ---
     function startGame() {
         const welcomeMessage = `
-Booting Gray-Fox OS v3.1...
-Kernel loaded.
-Hardware monitor initialized.
+Booting Gray-Fox OS v4.1...
+Kernel loaded. Resource monitor active.
 Network connection secured... OK
 
 Welcome, Gray-Fox 🧑‍💻
@@ -879,42 +807,43 @@ Type <span class="highlight">mail</span> to check for assignments.
         typewriterEffect(welcomeMessage);
     }
     
-    function getFullMissionDetails(id) {
-        const missionMails = {
-            "mission_01": { mail: `...`}, "mission_02": { mail: `...`}, "mission_03": { mail: `...`}, "mission_04": { mail: `...`}, "mission_05": { mail: `...`}, "mission_06": { mail: `...`}, "mission_07": { mail: `...`}, "mission_08": { mail: `...`}, "mission_09": { mail: `...`}, "mission_10": { mail: `...`}, "mission_11": { mail: `...`}, "mission_12": { mail: `...`}, "mission_13": { mail: `...`},
-            "mission_14": { mail: `\nFrom: syndicate-ops@darknet.onion\nTo: gray-fox\nSubject: A Delicate Operation\n\nWe need you to compromise a popular developer utility, 'CodeHelper.js'. Their update server is your target. Inject our payload into their next software update to create a botnet.\nUse <span class="highlight">compromise_repo</span> to begin.`},
-            "mission_15": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: Wire Transfer\n\nWe've identified a corporate target ripe for a Business Email Compromise. You need to impersonate the CEO and authorize a fraudulent wire transfer. Plausibility is key.\nUse <span class="highlight">initiate_bec</span> to start.`},
-            "mission_16": { mail: `\nFrom: contact@homesecure.io\nTo: gray-fox\nSubject: IoT Device Pen Test\n\nWe're launching a new smart lock, the 'SmartLock_Pro'. We need you to test its security against common attacks. See if you can bypass its authentication.\nUse <span class="highlight">scan_iot [ip]</span> on the test network.`},
-            "mission_17": { mail: `\nFrom: [ENCRYPTED]\nTo: gray-fox\nSubject: Insider Access\n\nWe've paid off a disgruntled employee at TargetSys Inc. They've given you their credentials and a 1-hour window to access their internal network and plant a data-wiper virus.\nUse <span class="highlight">access_internal</span> to login.`},
-            "mission_18": { mail: `\nFrom: awareness@mobileguard.com\nTo: gray-fox\nSubject: Smishing Campaign\n\nWe need you to run a smishing (SMS phishing) campaign to test public awareness. Craft a convincing text message to harvest credentials for our report.\nUse <span class="highlight">launch_smish</span> to begin.`},
-            "mission_19": { mail: `\nFrom: datathieves@proton.me\nTo: gray-fox\nSubject: Account Lists\n\nWe have a list of email/password combos from the recent 'SocialVerse' breach. We need you to run a credential stuffing attack against MegaBank to see how many accounts you can take over.\nUse <span class="highlight">stuff_creds</span>.`},
-            "mission_20": { mail: `\nFrom: pentest@netpatrol.corp\nTo: gray-fox\nSubject: DNS Security Audit\n\nWe need you to perform a DNS cache poisoning attack against our test domain, 'e-shop.com', to see if you can redirect users to a malicious IP. This is a high-skill contract.\nUse <span class="highlight">poison_dns</span>.`},
-            "mission_21": { mail: `\nFrom: security@connectapi.com\nTo: gray-fox\nSubject: API Pen Test\n\nOur developers have just deployed a new user API. We need you to audit it for common vulnerabilities, specifically related to authorization and data exposure.\nUse <span class="highlight">fuzz_api</span> on the endpoint.`},
-            "mission_22": { mail: `\nFrom: ghostcell@proton.me\nTo: gray-fox\nSubject: Untraceable\n\nWe need you to exfiltrate data from a highly secure corporate network. The catch: you cannot write any files to the disk. The entire attack must be fileless, running only in memory.\nUse <span class="highlight">inject_memory</span>.`},
-            "mission_23": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: Passive Income\n\nA university has a massive computer lab with hundreds of powerful machines that are idle at night. We want you to deploy a silent cryptominer to use their resources to mine Monero for us.\nUse <span class="highlight">deploy_miner</span>.`}
+    function getNewsHeadline(missionId, isWhiteHat) {
+        const mapping = {
+            'mission_03': {
+                white: null,
+                black: { headline: "Innovatech Suffers Major IP Theft, Project Chimera Compromised", type: 'black-hat' }
+            },
+            'mission_09': {
+                white: { headline: "Local Clinic Praises Anonymous Tip for Preventing Cyber-Attack", type: 'white-hat' },
+                black: { headline: "Ransomware Attack Cripples Local Clinic, Patient Data at Risk", type: 'black-hat' }
+            }
         };
-        const mission = missionMails[id];
-        // Fill in mail for original missions if they are empty
-        if (mission && mission.mail === '...') {
-             const originalMails = {
-                "mission_01": { mail: `\nFrom: contact@omnicorp.sec\nTo: gray-fox\nSubject: Urgent: Security Assessment Required\n\nWe require your services for a penetration test on one of our web servers. We suspect a potential vulnerability in our login system.\nTarget IP: <span class="highlight">192.168.1.101</span>\nYour task is to assess the system and report any findings.\n`},
-                "mission_02": { mail: `\nFrom: security@cyberright.inc\nTo: gray-fox\nSubject: Contract: Social Engineering Test\n\nGray-Fox, we need you to test the human element at TechSolutions LLC.\nYour task is to acquire an admin password via phone (vishing).\nTarget: TechSolutions Help Desk.\nUse command <span class="highlight">social_eng TSL_HelpDesk</span> to initiate the call.\n`},
-                "mission_03": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: A Lucrative Opportunity\n\nWe need access to the prototype files on Innovatech's internal server.\nTheir security is weak. Get in, get the files, get out.\nIP: <span class="highlight">203.0.113.78</span>\nDiscretion is key. Payment will be substantial.\n`},
-                "mission_04": { mail: `\nFrom: owner@dailygrind.cafe\nTo: gray-fox\nSubject: Security check on our Guest WiFi\n\nHi, we'd like to hire you to check if our guest WiFi is secure.\nThe network name is <span class="highlight">GrindNet_Guest</span>.\nPlease see if you can get the password and let us know.\nUse <span class="highlight">scan_wifi</span> to begin.\n`},
-                "mission_05": { mail: `\nFrom: audit@securitas.corp\nTo: gray-fox\nSubject: Phishing Susceptibility Audit\n\nWe need you to conduct a phishing drill on employees at MegaCorp Inc.\nYour goal is to see how many credentials you can capture.\nUse <span class="highlight">craft_phish</span> to design the attack email.\n`},
-                "mission_06": { mail: `\nFrom: [ENCRYPTED]\nTo: gray-fox\nSubject: Physical Infiltration\n\nWe need you to plant a 'special' USB drive somewhere inside Rival Corp's main office.\nSomeone is bound to pick it up. The drive will do the rest.\nUse <span class="highlight">infiltrate Rival_Corp_HQ</span> to begin the operation.\n`},
-                "mission_07": { mail: `\nFrom: cso@fintech.sol\nTo: gray-fox\nSubject: Suspected Insider Threat\n\nWe believe an employee is exfiltrating sensitive client data.\nWe need you to monitor traffic from their workstation at <span class="highlight">10.10.5.15</span> and find proof.\nUse <span class="highlight">sniff_traffic 10.10.5.15</span> to start monitoring.\n`},
-                "mission_08": { mail: `\nFrom: labs@cerebrum.ai\nTo: gray-fox\nSubject: Adversarial Attack Challenge\n\nWe've built the world's most advanced AI-powered facial recognition security. We challenge you to fool it.\nYour task is to get past our system by making it misclassify you.\nUse <span class="highlight">access_ai_lab</span> to begin the test.\n`},
-                "mission_09": { mail: `\nFrom: syndicate-boss@darknet.onion\nTo: gray-fox\nSubject: Job Offer: High Reward\n\nA local clinic has weak security. A perfect target.\nDeploy our ransomware on their server at <span class="highlight">172.16.30.120</span>.\nThe payout will be huge. Use <span class="highlight">scan [ip]</span> to find an entry point.\n`},
-                "mission_10": { mail: `\nFrom: l33th4x@saltygamers.net\nTo: gray-fox\nSubject: Take 'em down!\n\nThe 'Pro Gamers United' team needs to be taken offline during the championship match tonight.\nTheir game server is at <span class="highlight">198.51.100.45</span>.\nWe'll pay you well to flood their server.\nUse <span class="highlight">initiate_botnet</span> to get started.\n`},
-                "mission_11": { mail: `\nFrom: acquisitions@databrokers.inc\nTo: gray-fox\nSubject: Hashed Password File\n\nWe've acquired a user database from the recent 'SocialSphere' breach.\nThe passwords are all hashed. We need you to crack them.\nThe file is named <span class="highlight">leaked_db.hash</span>.\nUse <span class="highlight">crack_hashes leaked_db.hash</span> to begin.\n`},
-                "mission_12": { mail: `\nFrom: agent.k@gov.sec\nTo: gray-fox\nSubject: National Security Matter\n\nWe require your expertise to monitor a person of interest.\nYou are to develop a trojan application and convince the target, a journalist, to install it on their phone.\nUse <span class="highlight">develop_app</span> to start.\n`},
-                "mission_13": { mail: `\nFrom: ceo@startup-innovations.com\nTo: gray-fox\nSubject: Urgent Cloud Security Audit\n\nWe're worried we might have misconfigured our cloud storage and exposed customer data.\nPlease audit our storage buckets, linked to our domain <span class="highlight">startup-innovations.com</span>.\nUse <span class="highlight">scan_cloud startup-innovations.com</span> to check for open buckets.\n`}
-             }
-             return originalMails[id] || { mail: "Error: Mail not found." };
-        }
-        return mission || { mail: "Error: Mail not found." };
+        const missionNews = mapping[missionId];
+        if (!missionNews) return null;
+        return isWhiteHat ? missionNews.white : missionNews.black;
     }
+
+    function getFullMissionList() {
+        return {
+            "mission_01":{id:"mission_01",faction:"white",repRequirement:0,type:"sql_injection", targetIp: "192.168.1.101"},
+            "mission_02":{id:"mission_02",faction:"white",repRequirement:0,type:"social_engineering"},
+            "mission_03":{id:"mission_03",faction:"black",repRequirement:0,type:"data_theft", targetIp: "203.0.113.78"},
+            "mission_09":{id:"mission_09",faction:"black",repRequirement:3,type:"ransomware", targetIp: "172.16.30.120"}
+        };
+    }
+    function getFullMissionDetails(id) {
+        const mails = {
+            "mission_01": { mail: `\nFrom: contact@omnicorp.sec\nTo: gray-fox\nSubject: Urgent: Security Assessment Required\n\nWe require your services for a penetration test on one of our web servers. We suspect a potential vulnerability in our login system.\nTarget IP: <span class="highlight">192.168.1.101</span>\nUse <span class="highlight">nmap</span> to begin your reconnaissance.\n`},
+            "mission_02": { mail: `\nFrom: security@cyberright.inc\nTo: gray-fox\nSubject: Contract: Social Engineering Test\n\nGray-Fox, we need you to test the human element at TechSolutions LLC.\nYour task is to acquire an admin password via phone (vishing).\nUse the command <span class="highlight">social_eng TechSolutions_HelpDesk</span> to initiate the call.\n`},
+            "mission_03": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: A Lucrative Opportunity\n\nWe need access to the prototype files on Innovatech's internal server.\nTheir security is weak. Get in, get the files, get out.\nIP: <span class="highlight">203.0.113.78</span>\nDiscretion is key. Payment will be substantial.\n`},
+            "mission_09": { mail: `\nFrom: syndicate-boss@darknet.onion\nTo: gray-fox\nSubject: Job Offer: High Reward\n\nA local clinic has weak security. A perfect target.\nDeploy our ransomware on their server at <span class="highlight">172.16.30.120</span>.\nThe payout will be huge. Use <span class="highlight">nmap</span> to find an entry point.\n`}
+        };
+        return mails[id] || { mail: "Error: Mail not found." };
+    }
+    
+    // Fill in missing functions from previous steps for completeness
+    const unimplemented = () => typewriterEffect(`<span class="error">This tool's function is not yet implemented.</span>`);
+    const startPasswordCrack = unimplemented, startBecAttack = unimplemented;
     
     startGame();
 </script>
