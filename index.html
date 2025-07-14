@@ -272,8 +272,7 @@
         },
         // --- Mission Database ---
         missions: {
-            // Missions now have a 'faction' property: 'neutral', 'white', 'black'
-            // And a 'repRequirement'
+            // Original Missions
             "mission_01": { id: "mission_01", faction: "white", repRequirement: 0, type: "sql_injection", title: "Vulnerability Assessment for OmniCorp", client: "OmniCorp", targetIp: "192.168.1.101", completed: false, mail: `...` },
             "mission_02": { id: "mission_02", faction: "white", repRequirement: 0, type: "social_engineering", title: "Employee Security Awareness Test", client: "CyberRight Inc.", target: "TechSolutions LLC", completed: false, mail: `...` },
             "mission_03": { id: "mission_03", faction: "black", repRequirement: 0, type: "data_theft", title: "Acquire Competitor's Project Files", client: "Anonymous", targetIp: "203.0.113.78", completed: false, mail: `...` },
@@ -286,10 +285,22 @@
             "mission_10": { id: "mission_10", faction: "black", repRequirement: 1, type: "dos_attack", title: "Tournament Disruption", client: "Salty Gamers Crew", targetIp: "198.51.100.45", completed: false, mail: `...` },
             "mission_11": { id: "mission_11", faction: "black", repRequirement: 4, type: "password_cracking", title: "Crack the Database", client: "Data Brokers Inc.", target: "leaked_db.hash", completed: false, mail: `...` },
             "mission_12": { id: "mission_12", faction: "black", repRequirement: 5, type: "mobile_hacking", title: "Targeted Surveillance", client: "Gov Agency [CLASSIFIED]", target: "Journalist", completed: false, mail: `...` },
-            "mission_13": { id: "mission_13", faction: "white", repRequirement: 5, type: "cloud_hacking", title: "Cloud Storage Audit", client: "StartUp Innovations", target: "startup-innovations.com", completed: false, mail: `...` }
+            "mission_13": { id: "mission_13", faction: "white", repRequirement: 5, type: "cloud_hacking", title: "Cloud Storage Audit", client: "StartUp Innovations", target: "startup-innovations.com", completed: false, mail: `...` },
+            
+            // New Detailed Missions
+            "mission_14": { id: "mission_14", faction: "black", repRequirement: 6, type: "supply_chain", title: "Supply Chain Compromise", client: "The Syndicate", target: "popular_dev_tool", completed: false, mail: `...` },
+            "mission_15": { id: "mission_15", faction: "black", repRequirement: 5, type: "bec_attack", title: "Business Email Compromise", client: "Anonymous", target: "Finance Dept", completed: false, mail: `...` },
+            "mission_16": { id: "mission_16", faction: "white", repRequirement: 4, type: "iot_hacking", title: "Smart Home Security Test", client: "HomeSecure Inc.", target: "SmartLock_Pro", completed: false, mail: `...` },
+            "mission_17": { id: "mission_17", faction: "black", repRequirement: 3, type: "insider_threat", title: "Corporate Sabotage", client: "Rival Corp", target: "TargetSys Inc.", completed: false, mail: `...` },
+            "mission_18": { id: "mission_18", faction: "white", repRequirement: 2, type: "smishing_attack", title: "Smishing Awareness Campaign", client: "MobileGuard", target: "General Public", completed: false, mail: `...` },
+            "mission_19": { id: "mission_19", faction: "black", repRequirement: 4, type: "credential_stuffing", title: "Account Takeover", client: "DataThieves", target: "MegaBank", completed: false, mail: `...` },
+            "mission_20": { id: "mission_20", faction: "white", repRequirement: 6, type: "dns_spoofing", title: "DNS Hijacking Test", client: "NetPatrol Corp", target: "e-shop.com", completed: false, mail: `...` },
+            "mission_21": { id: "mission_21", faction: "white", repRequirement: 7, type: "api_hacking", title: "API Security Audit", client: "ConnectAPI", target: "api.connectapi.com", completed: false, mail: `...` },
+            "mission_22": { id: "mission_22", faction: "black", repRequirement: 8, type: "fileless_malware", title: "Undetectable Attack", client: "GhostCell", target: "SecureCorp", completed: false, mail: `...` },
+            "mission_23": { id: "mission_23", faction: "black", repRequirement: 2, type: "cryptojacking", title: "Resource Acquisition", client: "Anonymous", target: "University Network", completed: false, mail: `...` }
         }
     };
-    // Fill in mission mail content (shortened for brevity in the state object)
+    // Fill in mission mail content
     Object.values(gameState.missions).forEach(m => {
         const fullMission = getFullMissionDetails(m.id);
         m.mail = fullMission.mail;
@@ -372,6 +383,17 @@
             case 'crack_hashes': startPasswordCrack(args[0]); break;
             case 'develop_app': startMobileHacking(); break;
             case 'scan_cloud': startCloudScan(args[0]); break;
+            // New commands for new missions
+            case 'compromise_repo': startSupplyChainAttack(); break;
+            case 'initiate_bec': startBecAttack(); break;
+            case 'scan_iot': startIotScan(args[0]); break;
+            case 'access_internal': startInsiderThreat(); break;
+            case 'launch_smish': startSmishingAttack(); break;
+            case 'stuff_creds': startCredentialStuffing(); break;
+            case 'poison_dns': startDnsSpoofing(); break;
+            case 'fuzz_api': startApiHacking(); break;
+            case 'inject_memory': startFilelessMalware(); break;
+            case 'deploy_miner': startCryptojacking(); break;
             default: printToOutput(`<span class="error">Command not found: ${cmd}. Type 'help' for a list of commands.</span>`);
         }
     }
@@ -401,14 +423,13 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             return;
         }
 
-        // Filter missions based on reputation
         const dominantRep = gameState.whiteHatRep > gameState.blackHatRep ? 'white' : 'black';
         const repScore = Math.max(gameState.whiteHatRep, gameState.blackHatRep);
 
         const availableMissions = Object.values(gameState.missions).filter(m => 
             !m.completed &&
             m.repRequirement <= repScore &&
-            (m.faction === dominantRep || m.faction === 'neutral')
+            (m.faction === dominantRep || m.faction === 'neutral' || repScore === 0)
         );
 
         if (availableMissions.length === 0) {
@@ -424,19 +445,17 @@ Check the sidebar on the right to purchase upgrades and access faction services.
     }
     
     function runScan(targetIp) {
-        // ... (scan logic can now be modified by upgrades)
         const mission = gameState.missions[gameState.currentMission];
-        if (!mission) { /*...*/ return; }
-        if (targetIp !== mission.targetIp) { /*...*/ return; }
+        if (!mission || !targetIp || targetIp !== mission.targetIp) { 
+            printToOutput(`<span class="error">Error: No active mission or invalid target IP.</span>`);
+            return;
+        }
 
         let scanText = `Scanning ${targetIp} with scanner v${gameState.upgrades.cpuLevel}.0...`;
-        
-        // Example of upgrade integration
         if(gameState.upgrades.hasPremiumScanner) {
             scanText += `\n<span class="white-hat">[Premium Scanner]: Deep scan enabled.</span>`
         }
         
-        // ... rest of the scan logic ...
         if (mission.type === 'sql_injection') {
             scanText += `\n[!] Potential SQL Injection vulnerability detected on login form!`;
         } else if (mission.type === 'ransomware') {
@@ -458,12 +477,12 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         if (blackHat > 0) {
             let heatIncrease = 15;
             if(gameState.upgrades.hasVpn) {
-                heatIncrease = 5; // VPN reduces heat
+                heatIncrease = 5;
                 printToOutput(`<span class="white-hat">Anonymizer VPN routed traffic, heat reduced.</span>`);
             }
             gameState.heat = Math.min(100, gameState.heat + heatIncrease);
         } else if (whiteHat > 0) {
-            gameState.heat = Math.max(0, gameState.heat - 5); // White hat jobs cool you down
+            gameState.heat = Math.max(0, gameState.heat - 5);
         }
         
         if(gameState.currentMission) {
@@ -476,19 +495,14 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         checkHeat();
     }
     
-    // ... other command functions (runExploit, runReport, etc.) remain largely the same ...
-    // They will call completeMission which now handles reputation and heat.
-
     // --- Sidebar & Shop Logic ---
 
     function updateSidebar() {
-        // Update Status
         moneyEl.textContent = gameState.money.toLocaleString();
         whiteHatRepEl.textContent = gameState.whiteHatRep;
         blackHatRepEl.textContent = gameState.blackHatRep;
         heatBar.style.width = `${gameState.heat}%`;
 
-        // Update Shop
         shopItemsContainer.innerHTML = '';
         for (const id in shopData) {
             const item = shopData[id];
@@ -520,7 +534,6 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             shopItemsContainer.appendChild(itemDiv);
         }
 
-        // Update Factions
         const whRep = gameState.whiteHatRep;
         const bhRep = gameState.blackHatRep;
         let activeFaction = null;
@@ -565,12 +578,10 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         if (item.type === 'upgrade') {
             gameState.upgrades[item.key] = item.value;
         } else {
-            // Handle faction items/consumables
             switch(itemId) {
                 case 'zeroday':
                     gameState.inventory.zeroDayExploits++;
                     break;
-                // other faction items
             }
         }
 
@@ -603,7 +614,7 @@ Check the sidebar on the right to purchase upgrades and access faction services.
             if (lineIndex < lines.length) {
                 printToOutput(lines[lineIndex]);
                 lineIndex++;
-                setTimeout(printLine, 50 + Math.random() * 50);
+                setTimeout(printLine, 20 + Math.random() * 30);
             } else {
                 input.disabled = false;
                 input.focus();
@@ -613,10 +624,179 @@ Check the sidebar on the right to purchase upgrades and access faction services.
         printLine();
     }
 
+    // --- All Minigame and Command Functions ---
+    // This section contains all mission logic.
+    
+    const runReport = () => typewriterEffect(`Generating report...`, () => completeMission(5000, 1, 0));
+    const runExploitData = () => typewriterEffect(`Exploiting data...`, () => completeMission(15000, 0, 1));
+    const runExploit = () => typewriterEffect(`<span class="error">Invalid exploit command.</span>`);
+    const startSocialEngineeringMinigame = () => typewriterEffect(`Starting social engineering...`, () => completeMission(7500, 1, 0));
+    const startSqlInjectionMinigame = () => typewriterEffect(`Starting SQL injection...`, () => completeMission(5000, 1, 0));
+    const startWifiScan = () => typewriterEffect(`Scanning for WiFi...`, () => completeMission(0,0,0));
+    const startWifiCrack = () => typewriterEffect(`Cracking WPA2...`, () => completeMission(3000, 1, 0));
+    const startPhishingMinigame = () => typewriterEffect(`Crafting phishing email...`, () => completeMission(6000, 1, 0));
+    const startPhysicalHackingMinigame = () => typewriterEffect(`Infiltrating...`, () => completeMission(20000, 0, 1));
+    const startNetworkSniffing = () => typewriterEffect(`Sniffing traffic...`, () => completeMission(8000, 1, 0));
+    const startAiMinigame = () => typewriterEffect(`Accessing AI lab...`, () => completeMission(15000, 1, 0));
+    const startDosMinigame = () => typewriterEffect(`Initiating botnet...`, () => completeMission(9000, 0, 1));
+    const startPasswordCrack = () => typewriterEffect(`Cracking hashes...`, () => completeMission(18000, 0, 1));
+    const startMobileHacking = () => typewriterEffect(`Developing trojan app...`, () => completeMission(45000, 0, 1));
+    const startCloudScan = () => typewriterEffect(`Scanning cloud storage...`, () => completeMission(8000, 1, 0));
+
+    // --- NEW DETAILED MINIGAMES ---
+    function startSupplyChainAttack() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'supply_chain') { return; }
+        gameState.inMinigame = true;
+        const text = `
+--- Supply Chain Attack ---
+You've gained access to the public code repository for '<span class="highlight">${mission.target}</span>'.
+Your goal is to inject a malicious payload into the source code that will be distributed in the next update.
+Choose your injection point:
+  1) The main application entry point (obvious, likely to be caught).
+  2) A rarely used legacy library dependency (stealthy).
+  3) The build script that compiles the final program (clever, hard to spot).
+        `;
+        printToOutput(text.replace(/\n/g, '<br>'));
+        gameState.minigameCallback = (choice) => {
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+            if (choice === '3') {
+                typewriterEffect(`
+Injecting payload into build script...
+Creating pull request with a vague description: "Minor build optimizations"...
+...Pull request accepted and merged by an unsuspecting developer!
+The payload is now in the main branch.
+<span class="highlight">Compromise successful.</span> The next update will carry your malware.
+Payment transferred from The Syndicate.
+<span class="highlight">Payment received: $75,000</span>
+<span class="black-hat">Reputation changed: Black Hat +2 😈</span>
+                `, () => completeMission(75000, 0, 2));
+            } else {
+                typewriterEffect(`<span class="error">Your commit triggered a security alert!</span> The repository maintainers have reverted your changes and banned your account. Mission failed.`, () => completeMission(0, 0, 0));
+            }
+        };
+    }
+
+    function startBecAttack() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'bec_attack') { return; }
+        gameState.inMinigame = true;
+        const text = `
+--- Business Email Compromise ---
+You've been monitoring the CFO of a major corporation. You've registered a domain that looks very similar to their main partner's domain (e.g., 'megacorp.com' vs 'megac0rp.com').
+You must now craft an email to the CFO's assistant, pretending to be the CFO, authorizing an urgent wire transfer.
+What is the key element of your email?
+  1) "URGENT - INVOICE PAYMENT - SEND $250,000 NOW" (Too aggressive)
+  2) "Hi, I'm stuck in meetings. Can you please process invoice #78-A for our partner at MegaC0rp? It's overdue. Thanks." (Plausible)
+  3) "This is the CEO. Send money." (Not believable)
+        `;
+        printToOutput(text.replace(/\n/g, '<br>'));
+        gameState.minigameCallback = (choice) => {
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+            if (choice === '2') {
+                typewriterEffect(`
+Email sent. You wait...
+...An hour later, you see a transaction notification. The assistant took the bait.
+The wire transfer was successful.
+<span class="highlight">Funds acquired.</span>
+<span class="highlight">Payment received: $250,000</span>
+<span class="black-hat">Reputation changed: Black Hat +2 😈</span>
+                `, () => completeMission(250000, 0, 2));
+            } else {
+                typewriterEffect(`<span class="error">The assistant found your request suspicious</span> and called the CFO to verify. The alarm has been raised. Mission failed.`, () => completeMission(0, 0, 0));
+            }
+        };
+    }
+
+    function startIotScan(target) {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'iot_hacking') { return; }
+        typewriterEffect(`Scanning for IoT devices on the network...\nFound device: <span class="highlight">${mission.target}</span>\nQuerying for default credentials...`);
+        setTimeout(() => {
+            typewriterEffect(`
+<span class="highlight">Vulnerability found!</span> The device is using the default factory password ('admin123').
+You can now access the device's control panel.
+What's your next move?
+  - <span class="highlight">report</span>: Report the critical vulnerability to HomeSecure Inc. (White Hat)
+  - <span class="highlight">exploit_data</span>: Unlock the door and sell access to a burglary crew. (Black Hat)
+            `);
+        }, 2000);
+    }
+    
+    function startApiHacking() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'api_hacking') { return; }
+        gameState.inMinigame = true;
+        const text = `
+--- API Hacking Minigame ---
+You are auditing the endpoint <span class="highlight">/api/v1/user/details/{userID}</span>.
+You notice that by requesting your own userID, you get your user details.
+What is the next logical test for a vulnerability?
+  1) Try to POST data to the endpoint.
+  2) Change the request from GET to DELETE.
+  3) Replace your userID with another number (e.g., 1, 100, 101) to see if you can access other users' data.
+        `;
+        printToOutput(text.replace(/\n/g, '<br>'));
+        gameState.minigameCallback = (choice) => {
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+            if (choice === '3') {
+                typewriterEffect(`
+You send a request to <span class="highlight">/api/v1/user/details/1</span>...
+<span class="highlight">Success!</span> The API returns the full details for the system's first-ever user: the administrator.
+This is a classic Insecure Direct Object Reference (IDOR) vulnerability.
+You have proven a critical flaw.
+<span class="highlight">Payment received: $22,000</span>
+<span class="white-hat">Reputation changed: White Hat +2 😇</span>
+                `, () => completeMission(22000, 2, 0));
+            } else {
+                typewriterEffect(`<span class="error">The API returns a 405 Method Not Allowed error.</span> That's not the vulnerability. Mission failed.`, () => completeMission(0, 0, 0));
+            }
+        };
+    }
+    
+    function startFilelessMalware() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission || mission.type !== 'fileless_malware') { return; }
+        gameState.inMinigame = true;
+        const text = `
+--- Fileless Malware Attack ---
+You have a foothold in SecureCorp's network. To avoid antivirus, you must run your payload only in memory.
+Which legitimate system tool will you abuse to run your malicious code?
+  1) notepad.exe (A simple text editor, no code execution capabilities)
+  2) powershell.exe (A powerful scripting engine, perfect for this)
+  3) mspaint.exe (An image editor, cannot run scripts)
+        `;
+        printToOutput(text.replace(/\n/g, '<br>'));
+        gameState.minigameCallback = (choice) => {
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+            if (choice === '2') {
+                typewriterEffect(`
+You use PowerShell to download and execute your script directly into RAM.
+<span class="highlight">Executing from memory...</span>
+Antivirus scan... <span class="white-hat">Clean.</span> No malicious files found on disk.
+The payload is running undetected, siphoning data.
+The client is extremely pleased with your stealth.
+<span class="highlight">Payment received: $120,000</span>
+<span class="black-hat">Reputation changed: Black Hat +3 😈</span>
+                `, () => completeMission(120000, 0, 3));
+            } else {
+                typewriterEffect(`<span class="error">That tool cannot execute your script.</span> You have lost your foothold. Mission failed.`, () => completeMission(0, 0, 0));
+            }
+        };
+    }
+
+    const unimplemented = () => typewriterEffect(`<span class="error">This path is still under development.</span>`, () => completeMission(0,0,0));
+    const startInsiderThreat = unimplemented, startSmishingAttack = unimplemented, startCredentialStuffing = unimplemented, startDnsSpoofing = unimplemented, startCryptojacking = unimplemented;
+
+
     // --- Game Start ---
     function startGame() {
         const welcomeMessage = `
-Booting Gray-Fox OS v3.0...
+Booting Gray-Fox OS v3.1...
 Kernel loaded.
 Hardware monitor initialized.
 Network connection secured... OK
@@ -630,38 +810,43 @@ Type <span class="highlight">mail</span> to check for assignments.
         typewriterEffect(welcomeMessage);
     }
     
-    // Helper to get full mission text, which was removed from the main state object for clarity
     function getFullMissionDetails(id) {
-        // In a real app, this might be a larger data structure or API call.
-        // For now, we'll just store the original mail content here.
         const missionMails = {
-            "mission_01": { mail: `\nFrom: contact@omnicorp.sec\nTo: gray-fox\nSubject: Urgent: Security Assessment Required\n\nWe require your services for a penetration test on one of our web servers. We suspect a potential vulnerability in our login system.\nTarget IP: <span class="highlight">192.168.1.101</span>\nYour task is to assess the system and report any findings.\n`},
-            "mission_02": { mail: `\nFrom: security@cyberright.inc\nTo: gray-fox\nSubject: Contract: Social Engineering Test\n\nGray-Fox, we need you to test the human element at TechSolutions LLC.\nYour task is to acquire an admin password via phone (vishing).\nTarget: TechSolutions Help Desk.\nUse command <span class="highlight">social_eng TSL_HelpDesk</span> to initiate the call.\n`},
-            "mission_03": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: A Lucrative Opportunity\n\nWe need access to the prototype files on Innovatech's internal server.\nTheir security is weak. Get in, get the files, get out.\nIP: <span class="highlight">203.0.113.78</span>\nDiscretion is key. Payment will be substantial.\n`},
-            "mission_04": { mail: `\nFrom: owner@dailygrind.cafe\nTo: gray-fox\nSubject: Security check on our Guest WiFi\n\nHi, we'd like to hire you to check if our guest WiFi is secure.\nThe network name is <span class="highlight">GrindNet_Guest</span>.\nPlease see if you can get the password and let us know.\nUse <span class="highlight">scan_wifi</span> to begin.\n`},
-            "mission_05": { mail: `\nFrom: audit@securitas.corp\nTo: gray-fox\nSubject: Phishing Susceptibility Audit\n\nWe need you to conduct a phishing drill on employees at MegaCorp Inc.\nYour goal is to see how many credentials you can capture.\nUse <span class="highlight">craft_phish</span> to design the attack email.\n`},
-            "mission_06": { mail: `\nFrom: [ENCRYPTED]\nTo: gray-fox\nSubject: Physical Infiltration\n\nWe need you to plant a 'special' USB drive somewhere inside Rival Corp's main office.\nSomeone is bound to pick it up. The drive will do the rest.\nUse <span class="highlight">infiltrate Rival_Corp_HQ</span> to begin the operation.\n`},
-            "mission_07": { mail: `\nFrom: cso@fintech.sol\nTo: gray-fox\nSubject: Suspected Insider Threat\n\nWe believe an employee is exfiltrating sensitive client data.\nWe need you to monitor traffic from their workstation at <span class="highlight">10.10.5.15</span> and find proof.\nUse <span class="highlight">sniff_traffic 10.10.5.15</span> to start monitoring.\n`},
-            "mission_08": { mail: `\nFrom: labs@cerebrum.ai\nTo: gray-fox\nSubject: Adversarial Attack Challenge\n\nWe've built the world's most advanced AI-powered facial recognition security. We challenge you to fool it.\nYour task is to get past our system by making it misclassify you.\nUse <span class="highlight">access_ai_lab</span> to begin the test.\n`},
-            "mission_09": { mail: `\nFrom: syndicate-boss@darknet.onion\nTo: gray-fox\nSubject: Job Offer: High Reward\n\nA local clinic has weak security. A perfect target.\nDeploy our ransomware on their server at <span class="highlight">172.16.30.120</span>.\nThe payout will be huge. Use <span class="highlight">scan [ip]</span> to find an entry point.\n`},
-            "mission_10": { mail: `\nFrom: l33th4x@saltygamers.net\nTo: gray-fox\nSubject: Take 'em down!\n\nThe 'Pro Gamers United' team needs to be taken offline during the championship match tonight.\nTheir game server is at <span class="highlight">198.51.100.45</span>.\nWe'll pay you well to flood their server.\nUse <span class="highlight">initiate_botnet</span> to get started.\n`},
-            "mission_11": { mail: `\nFrom: acquisitions@databrokers.inc\nTo: gray-fox\nSubject: Hashed Password File\n\nWe've acquired a user database from the recent 'SocialSphere' breach.\nThe passwords are all hashed. We need you to crack them.\nThe file is named <span class="highlight">leaked_db.hash</span>.\nUse <span class="highlight">crack_hashes leaked_db.hash</span> to begin.\n`},
-            "mission_12": { mail: `\nFrom: agent.k@gov.sec\nTo: gray-fox\nSubject: National Security Matter\n\nWe require your expertise to monitor a person of interest.\nYou are to develop a trojan application and convince the target, a journalist, to install it on their phone.\nUse <span class="highlight">develop_app</span> to start.\n`},
-            "mission_13": { mail: `\nFrom: ceo@startup-innovations.com\nTo: gray-fox\nSubject: Urgent Cloud Security Audit\n\nWe're worried we might have misconfigured our cloud storage and exposed customer data.\nPlease audit our storage buckets, linked to our domain <span class="highlight">startup-innovations.com</span>.\nUse <span class="highlight">scan_cloud startup-innovations.com</span> to check for open buckets.\n`}
+            "mission_01": { mail: `...`}, "mission_02": { mail: `...`}, "mission_03": { mail: `...`}, "mission_04": { mail: `...`}, "mission_05": { mail: `...`}, "mission_06": { mail: `...`}, "mission_07": { mail: `...`}, "mission_08": { mail: `...`}, "mission_09": { mail: `...`}, "mission_10": { mail: `...`}, "mission_11": { mail: `...`}, "mission_12": { mail: `...`}, "mission_13": { mail: `...`},
+            "mission_14": { mail: `\nFrom: syndicate-ops@darknet.onion\nTo: gray-fox\nSubject: A Delicate Operation\n\nWe need you to compromise a popular developer utility, 'CodeHelper.js'. Their update server is your target. Inject our payload into their next software update to create a botnet.\nUse <span class="highlight">compromise_repo</span> to begin.`},
+            "mission_15": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: Wire Transfer\n\nWe've identified a corporate target ripe for a Business Email Compromise. You need to impersonate the CEO and authorize a fraudulent wire transfer. Plausibility is key.\nUse <span class="highlight">initiate_bec</span> to start.`},
+            "mission_16": { mail: `\nFrom: contact@homesecure.io\nTo: gray-fox\nSubject: IoT Device Pen Test\n\nWe're launching a new smart lock, the 'SmartLock_Pro'. We need you to test its security against common attacks. See if you can bypass its authentication.\nUse <span class="highlight">scan_iot [ip]</span> on the test network.`},
+            "mission_17": { mail: `\nFrom: [ENCRYPTED]\nTo: gray-fox\nSubject: Insider Access\n\nWe've paid off a disgruntled employee at TargetSys Inc. They've given you their credentials and a 1-hour window to access their internal network and plant a data-wiper virus.\nUse <span class="highlight">access_internal</span> to login.`},
+            "mission_18": { mail: `\nFrom: awareness@mobileguard.com\nTo: gray-fox\nSubject: Smishing Campaign\n\nWe need you to run a smishing (SMS phishing) campaign to test public awareness. Craft a convincing text message to harvest credentials for our report.\nUse <span class="highlight">launch_smish</span> to begin.`},
+            "mission_19": { mail: `\nFrom: datathieves@proton.me\nTo: gray-fox\nSubject: Account Lists\n\nWe have a list of email/password combos from the recent 'SocialVerse' breach. We need you to run a credential stuffing attack against MegaBank to see how many accounts you can take over.\nUse <span class="highlight">stuff_creds</span>.`},
+            "mission_20": { mail: `\nFrom: pentest@netpatrol.corp\nTo: gray-fox\nSubject: DNS Security Audit\n\nWe need you to perform a DNS cache poisoning attack against our test domain, 'e-shop.com', to see if you can redirect users to a malicious IP. This is a high-skill contract.\nUse <span class="highlight">poison_dns</span>.`},
+            "mission_21": { mail: `\nFrom: security@connectapi.com\nTo: gray-fox\nSubject: API Pen Test\n\nOur developers have just deployed a new user API. We need you to audit it for common vulnerabilities, specifically related to authorization and data exposure.\nUse <span class="highlight">fuzz_api</span> on the endpoint.`},
+            "mission_22": { mail: `\nFrom: ghostcell@proton.me\nTo: gray-fox\nSubject: Untraceable\n\nWe need you to exfiltrate data from a highly secure corporate network. The catch: you cannot write any files to the disk. The entire attack must be fileless, running only in memory.\nUse <span class="highlight">inject_memory</span>.`},
+            "mission_23": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: Passive Income\n\nA university has a massive computer lab with hundreds of powerful machines that are idle at night. We want you to deploy a silent cryptominer to use their resources to mine Monero for us.\nUse <span class="highlight">deploy_miner</span>.`}
         };
-        return missionMails[id] || { mail: "Error: Mail not found." };
+        const mission = missionMails[id];
+        // Fill in mail for original missions if they are empty
+        if (mission && mission.mail === '...') {
+             const originalMails = {
+                "mission_01": { mail: `\nFrom: contact@omnicorp.sec\nTo: gray-fox\nSubject: Urgent: Security Assessment Required\n\nWe require your services for a penetration test on one of our web servers. We suspect a potential vulnerability in our login system.\nTarget IP: <span class="highlight">192.168.1.101</span>\nYour task is to assess the system and report any findings.\n`},
+                "mission_02": { mail: `\nFrom: security@cyberright.inc\nTo: gray-fox\nSubject: Contract: Social Engineering Test\n\nGray-Fox, we need you to test the human element at TechSolutions LLC.\nYour task is to acquire an admin password via phone (vishing).\nTarget: TechSolutions Help Desk.\nUse command <span class="highlight">social_eng TSL_HelpDesk</span> to initiate the call.\n`},
+                "mission_03": { mail: `\nFrom: [REDACTED]\nTo: gray-fox\nSubject: A Lucrative Opportunity\n\nWe need access to the prototype files on Innovatech's internal server.\nTheir security is weak. Get in, get the files, get out.\nIP: <span class="highlight">203.0.113.78</span>\nDiscretion is key. Payment will be substantial.\n`},
+                "mission_04": { mail: `\nFrom: owner@dailygrind.cafe\nTo: gray-fox\nSubject: Security check on our Guest WiFi\n\nHi, we'd like to hire you to check if our guest WiFi is secure.\nThe network name is <span class="highlight">GrindNet_Guest</span>.\nPlease see if you can get the password and let us know.\nUse <span class="highlight">scan_wifi</span> to begin.\n`},
+                "mission_05": { mail: `\nFrom: audit@securitas.corp\nTo: gray-fox\nSubject: Phishing Susceptibility Audit\n\nWe need you to conduct a phishing drill on employees at MegaCorp Inc.\nYour goal is to see how many credentials you can capture.\nUse <span class="highlight">craft_phish</span> to design the attack email.\n`},
+                "mission_06": { mail: `\nFrom: [ENCRYPTED]\nTo: gray-fox\nSubject: Physical Infiltration\n\nWe need you to plant a 'special' USB drive somewhere inside Rival Corp's main office.\nSomeone is bound to pick it up. The drive will do the rest.\nUse <span class="highlight">infiltrate Rival_Corp_HQ</span> to begin the operation.\n`},
+                "mission_07": { mail: `\nFrom: cso@fintech.sol\nTo: gray-fox\nSubject: Suspected Insider Threat\n\nWe believe an employee is exfiltrating sensitive client data.\nWe need you to monitor traffic from their workstation at <span class="highlight">10.10.5.15</span> and find proof.\nUse <span class="highlight">sniff_traffic 10.10.5.15</span> to start monitoring.\n`},
+                "mission_08": { mail: `\nFrom: labs@cerebrum.ai\nTo: gray-fox\nSubject: Adversarial Attack Challenge\n\nWe've built the world's most advanced AI-powered facial recognition security. We challenge you to fool it.\nYour task is to get past our system by making it misclassify you.\nUse <span class="highlight">access_ai_lab</span> to begin the test.\n`},
+                "mission_09": { mail: `\nFrom: syndicate-boss@darknet.onion\nTo: gray-fox\nSubject: Job Offer: High Reward\n\nA local clinic has weak security. A perfect target.\nDeploy our ransomware on their server at <span class="highlight">172.16.30.120</span>.\nThe payout will be huge. Use <span class="highlight">scan [ip]</span> to find an entry point.\n`},
+                "mission_10": { mail: `\nFrom: l33th4x@saltygamers.net\nTo: gray-fox\nSubject: Take 'em down!\n\nThe 'Pro Gamers United' team needs to be taken offline during the championship match tonight.\nTheir game server is at <span class="highlight">198.51.100.45</span>.\nWe'll pay you well to flood their server.\nUse <span class="highlight">initiate_botnet</span> to get started.\n`},
+                "mission_11": { mail: `\nFrom: acquisitions@databrokers.inc\nTo: gray-fox\nSubject: Hashed Password File\n\nWe've acquired a user database from the recent 'SocialSphere' breach.\nThe passwords are all hashed. We need you to crack them.\nThe file is named <span class="highlight">leaked_db.hash</span>.\nUse <span class="highlight">crack_hashes leaked_db.hash</span> to begin.\n`},
+                "mission_12": { mail: `\nFrom: agent.k@gov.sec\nTo: gray-fox\nSubject: National Security Matter\n\nWe require your expertise to monitor a person of interest.\nYou are to develop a trojan application and convince the target, a journalist, to install it on their phone.\nUse <span class="highlight">develop_app</span> to start.\n`},
+                "mission_13": { mail: `\nFrom: ceo@startup-innovations.com\nTo: gray-fox\nSubject: Urgent Cloud Security Audit\n\nWe're worried we might have misconfigured our cloud storage and exposed customer data.\nPlease audit our storage buckets, linked to our domain <span class="highlight">startup-innovations.com</span>.\nUse <span class="highlight">scan_cloud startup-innovations.com</span> to check for open buckets.\n`}
+             }
+             return originalMails[id] || { mail: "Error: Mail not found." };
+        }
+        return mission || { mail: "Error: Mail not found." };
     }
     
-    // Dummy functions for unimplemented commands/minigames
-    const unimplemented = () => typewriterEffect(`<span class="error">This path is still under development.</span>`, () => completeMission(0,0,0));
-    const startWifiCrack = unimplemented, startPhysicalHackingMinigame = unimplemented, startNetworkSniffing = unimplemented, startAiMinigame = unimplemented, startDosMinigame = unimplemented, startPasswordCrack = unimplemented, startMobileHacking = unimplemented, startCloudScan = unimplemented, startPhishingMinigame = unimplemented;
-    const runReport = () => typewriterEffect(`Generating report...`, () => completeMission(5000, 1, 0));
-    const runExploitData = () => typewriterEffect(`Exploiting data...`, () => completeMission(15000, 0, 1));
-    const runExploit = unimplemented;
-    const startSocialEngineeringMinigame = unimplemented;
-    const startSqlInjectionMinigame = unimplemented;
-    // ---
-
     startGame();
 </script>
 </body>
