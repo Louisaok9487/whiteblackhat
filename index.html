@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Gray-Fox</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap');
+
+        :root {
+            --background-color: #0d0d0d;
+            --text-color: #00ff41;
+            --prompt-color: #00ff41;
+            --input-color: #ffffff;
+            --highlight-color: #faffa8;
+            --error-color: #ff4d4d;
+            --whitehat-color: #75aaff;
+            --blackhat-color: #ff4d4d;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Inconsolata', monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+        
+        #status-bar {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid var(--text-color);
+            z-index: 100;
+            font-size: 14px;
+        }
+
+        #status-bar span {
+            margin-left: 1rem;
+        }
+
+        #terminal {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px; /* For scrollbar */
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+        }
+
+        .prompt {
+            color: var(--prompt-color);
+            margin-right: 0.5rem;
+            white-space: nowrap;
+        }
+
+        #input {
+            background-color: transparent;
+            border: none;
+            color: var(--input-color);
+            font-family: inherit;
+            font-size: inherit;
+            width: 100%;
+            outline: none;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: var(--input-color);
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+        }
+
+        @keyframes blink {
+            50% {
+                background-color: transparent;
+            }
+        }
+
+        .error { color: var(--error-color); }
+        .white-hat { color: var(--whitehat-color); }
+        .black-hat { color: var(--blackhat-color); }
+
+        .highlight {
+            background-color: var(--text-color);
+            color: var(--background-color);
+            padding: 0 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="status-bar">
+    <span>💰 Money: $<span id="money">0</span></span>
+    <span>😇 White Hat: <span id="white-hat-rep">0</span></span>
+    <span>😈 Black Hat: <span id="black-hat-rep">0</span></span>
+</div>
+
+<div id="terminal">
+    <div id="output"></div>
+    <div class="input-line">
+        <span class="prompt" id="prompt">gray-fox@local:~$</span>
+        <input type="text" id="input" autofocus>
+        <span class="cursor"></span>
+    </div>
+</div>
+
+<script>
+    // --- DOM Elements ---
+    const terminal = document.getElementById('terminal');
+    const output = document.getElementById('output');
+    const input = document.getElementById('input');
+    const promptEl = document.getElementById('prompt');
+    const moneyEl = document.getElementById('money');
+    const whiteHatRepEl = document.getElementById('white-hat-rep');
+    const blackHatRepEl = document.getElementById('black-hat-rep');
+
+    // --- Game State ---
+    let commandHistory = [];
+    let historyIndex = -1;
+    let gameState = {
+        money: 0,
+        whiteHatRep: 0,
+        blackHatRep: 0,
+        currentMission: null,
+        inMinigame: false,
+        minigameCallback: null,
+        missions: {
+            "mission_01": {
+                id: "mission_01",
+                type: "sql_injection",
+                title: "Vulnerability Assessment for OmniCorp",
+                client: "OmniCorp",
+                targetIp: "192.168.1.101",
+                completed: false,
+                mail: `
+From: contact@omnicorp.sec
+To: gray-fox
+Subject: Urgent: Security Assessment Required
+
+We require your services for a penetration test on one of our web servers. We suspect a potential vulnerability in our login system.
+Target IP: <span class="highlight">192.168.1.101</span>
+Your task is to assess the system and report any findings.
+`,
+            },
+            "mission_02": {
+                id: "mission_02",
+                type: "social_engineering",
+                title: "Employee Security Awareness Test",
+                client: "CyberRight Inc.",
+                target: "TechSolutions LLC",
+                completed: false,
+                mail: `
+From: security@cyberright.inc
+To: gray-fox
+Subject: Contract: Social Engineering Test
+
+Gray-Fox, we need you to test the human element at TechSolutions LLC.
+Your task is to acquire an admin password via phone (vishing).
+Target: TechSolutions Help Desk.
+Use command <span class="highlight">social_eng TSL_HelpDesk</span> to initiate the call.
+`
+            },
+            "mission_03": {
+                id: "mission_03",
+                type: "data_theft",
+                title: "Acquire Competitor's Project Files",
+                client: "Anonymous",
+                targetIp: "203.0.113.78",
+                completed: false,
+                mail: `
+From: [REDACTED]
+To: gray-fox
+Subject: A Lucrative Opportunity
+
+We need access to the prototype files on Innovatech's internal server.
+Their security is weak. Get in, get the files, get out.
+IP: <span class="highlight">203.0.113.78</span>
+Discretion is key. Payment will be substantial.
+`
+            }
+        }
+    };
+
+    // --- Core Game Logic ---
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (command) {
+                printToOutput(`<span class="prompt">${promptEl.textContent}</span> ${command}`);
+                handleCommand(command);
+                commandHistory.unshift(command);
+                historyIndex = -1;
+                input.value = '';
+                scrollToBottom();
+            }
+        } else if (e.key === 'ArrowUp') {
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = -1;
+                input.value = '';
+            }
+        }
+    });
+
+    terminal.addEventListener('click', () => { input.focus(); });
+
+    function handleCommand(command) {
+        const [cmd, ...args] = command.toLowerCase().split(' ');
+
+        if (cmd === 'help') { showHelp(); return; }
+        if (cmd === 'clear') { output.innerHTML = ''; return; }
+        
+        if (gameState.inMinigame) {
+            if (gameState.minigameCallback) gameState.minigameCallback(command);
+            return;
+        }
+
+        switch (cmd) {
+            case 'whoami': printToOutput('User: gray-fox 🧑‍💻'); break;
+            case 'mail': checkMail(); break;
+            case 'scan': runScan(args[0]); break;
+            case 'exploit': runExploit(args[0]); break;
+            case 'social_eng': startSocialEngineeringMinigame(args[0]); break;
+            case 'report': runReport(); break;
+            case 'exploit_data': runExploitData(); break;
+            default: printToOutput(`<span class="error">Command not found: ${cmd}. Type 'help' for a list of commands.</span>`);
+        }
+    }
+
+    // --- Command Functions ---
+    function showHelp() {
+        const helpText = `
+Available Commands:
+  <span class="highlight">help</span>              - Shows this help message.
+  <span class="highlight">clear</span>             - Clears the terminal screen.
+  <span class="highlight">whoami</span>            - Displays your current user.
+  <span class="highlight">mail</span>              - Checks for new messages.
+  <span class="highlight">scan [ip]</span>         - Scans a target IP for vulnerabilities.
+  <span class="highlight">exploit [vuln]</span>    - Attempts to exploit a found vulnerability.
+  <span class="highlight">social_eng [target]</span> - Initiates a social engineering attack.
+  <span class="highlight">report</span>            - Report vulnerability to client (White Hat).
+  <span class="highlight">exploit_data</span>      - Steal data for profit (Black Hat).
+        `;
+        printToOutput(helpText.replace(/\n/g, '<br>'));
+    }
+    
+    function checkMail() {
+        if (gameState.currentMission) {
+            printToOutput("You already have an active mission. Complete it first.");
+            return;
+        }
+
+        const availableMissions = Object.values(gameState.missions).filter(m => !m.completed);
+        if (availableMissions.length === 0) {
+            printToOutput("No new messages. You have completed all available missions!");
+            return;
+        }
+
+        const mission = availableMissions[Math.floor(Math.random() * availableMissions.length)];
+        gameState.currentMission = mission.id;
+        
+        const mailText = `New Message (1):${mission.mail}`;
+        typewriterEffect(mailText);
+    }
+
+    function runScan(targetIp) {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission) {
+            printToOutput(`<span class="error">Error: No active mission. Check your mail.</span>`);
+            return;
+        }
+        if (targetIp !== mission.targetIp) {
+            printToOutput(`<span class="error">Error: Invalid target IP.</span>`);
+            return;
+        }
+
+        let scanText = `Scanning ${targetIp}...`;
+        if (mission.type === 'sql_injection') {
+            scanText += `
+[!] Potential SQL Injection vulnerability detected!
+To proceed, use the command: <span class="highlight">exploit SQL_Injection</span>`;
+        } else if (mission.type === 'data_theft') {
+            scanText += `
+[!] Found an unpatched FTP server on port 21.
+Default credentials might work.
+To proceed, use the command: <span class="highlight">exploit default_creds</span>`;
+        } else {
+             scanText += `\nNo obvious vulnerabilities found.`;
+        }
+        typewriterEffect(scanText);
+    }
+    
+    function runExploit(vulnerability) {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission) { printToOutput(`<span class="error">Error: No active mission.</span>`); return; }
+
+        if (mission.type === 'sql_injection' && vulnerability.toLowerCase() === 'sql_injection') {
+            startSqlInjectionMinigame();
+        } else if (mission.type === 'data_theft' && vulnerability.toLowerCase() === 'default_creds') {
+            typewriterEffect(`
+Attempting login with common default credentials (admin:admin, root:password)...
+<span class="highlight">Access Granted!</span> You are in their file system.
+Now, what's your next move?
+  - <span class="highlight">report</span>: Inform Innovatech of their weak security. (White Hat)
+  - <span class="highlight">exploit_data</span>: Download the 'Project_Chimera_blueprints.zip'. (Black Hat)
+            `);
+        } else {
+            printToOutput(`<span class="error">Exploit failed or invalid vulnerability for this mission.</span>`);
+        }
+    }
+    
+    function completeMission(money, whiteHat, blackHat) {
+        gameState.money += money;
+        gameState.whiteHatRep += whiteHat;
+        gameState.blackHatRep += blackHat;
+        updateStatus();
+        
+        if(gameState.currentMission) {
+            gameState.missions[gameState.currentMission].completed = true;
+            gameState.currentMission = null;
+        }
+        
+        printToOutput("Mission Completed! Check 'mail' for new assignments.");
+    }
+
+    function runReport() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission) { printToOutput(`<span class="error">Error: No active mission to report.</span>`); return; }
+        
+        const reportText = `
+Generating report for ${mission.client}...
+Report sent successfully.
+
+<span class="highlight">Payment received: $5,000</span>
+<span class="white-hat">Reputation changed: White Hat +1 😇</span>
+        `;
+        typewriterEffect(reportText, () => completeMission(5000, 1, 0));
+    }
+
+    function runExploitData() {
+        const mission = gameState.missions[gameState.currentMission];
+        if (!mission) { printToOutput(`<span class="error">Error: No data to exploit.</span>`); return; }
+
+        const exploitText = `
+Downloading data... 'Project_Chimera_blueprints.zip' (150MB)
+... Transfer complete.
+Uploading to anonymous client...
+... Upload complete.
+
+A deposit has been made to your account.
+<span class="highlight">Payment received: $15,000</span>
+<span class="black-hat">Reputation changed: Black Hat +1 😈</span>
+        `;
+        typewriterEffect(exploitText, () => completeMission(15000, 0, 1));
+    }
+
+    // --- Minigames ---
+    function startSqlInjectionMinigame() {
+        gameState.inMinigame = true;
+        const puzzleText = `
+--- SQL INJECTION MINIGAME ---
+The server's login query: <span class="highlight">SELECT * FROM users WHERE password = '[YOUR_INPUT]';</span>
+Choose the correct payload to bypass authentication:
+  1) OR 1=1
+  2) ' OR 1=1; --
+  3) ; DROP TABLE users;
+Type the number of your choice (1-3) and press Enter.
+        `;
+        printToOutput(puzzleText.replace(/\n/g, '<br>'));
+        
+        gameState.minigameCallback = (choice) => {
+            if (choice === '2') {
+                const successText = `
+<span class="highlight">Access Granted!</span> You have successfully bypassed the authentication.
+Now, what's your next move?
+  - <span class="highlight">report</span>: Report the vulnerability to OmniCorp. (White Hat)
+  - <span class="highlight">exploit_data</span>: Steal user data for personal gain. (Black Hat)
+                `;
+                typewriterEffect(successText);
+                gameState.inMinigame = false;
+                gameState.minigameCallback = null;
+            } else {
+                 typewriterEffect(`<span class="error">Payload rejected!</span> The query failed. Try again.`);
+            }
+        };
+    }
+
+    function startSocialEngineeringMinigame(target) {
+        if (!gameState.currentMission || gameState.missions[gameState.currentMission].type !== 'social_engineering') {
+            printToOutput(`<span class="error">Error: No active social engineering mission.</span>`);
+            return;
+        }
+        gameState.inMinigame = true;
+        const puzzleText = `
+--- SOCIAL ENGINEERING MINIGAME ---
+You are calling the TechSolutions Help Desk. Your goal is to sound convincing and get the admin password.
+The operator answers: "TechSolutions Help Desk, this is Brenda. How can I help you?"
+
+Choose your opening line:
+  1) "Hi, I forgot my password. Can you reset it?"
+  2) "BRENDA! This is Mark from accounting. The CEO can't login and he is FURIOUS. I need the emergency admin password NOW!"
+  3) "Hello, I'm calling for a security audit. I need to verify your current admin password."
+Type the number of your choice (1-3) and press Enter.
+        `;
+        printToOutput(puzzleText.replace(/\n/g, '<br>'));
+
+        gameState.minigameCallback = (choice) => {
+            if (choice === '2') {
+                const successText = `
+Brenda sounds flustered. "Oh, oh my! Yes, of course! The emergency password is <span class="highlight">Alpha-Delta-7-7-0</span>. Please tell Mr. Davison we're on it!"
+
+<span class="highlight">Password Acquired!</span>
+You've successfully completed the social engineering test.
+You hang up and report your findings to CyberRight Inc.
+<span class="highlight">Payment received: $7,500</span>
+<span class="white-hat">Reputation changed: White Hat +1 😇</span>
+                `;
+                typewriterEffect(successText, () => completeMission(7500, 1, 0));
+            } else {
+                const failText = `
+Brenda sounds suspicious. "I'm sorry, I can't do that. I'll need to verify your identity through standard procedure."
+<span class="error">She hangs up. Mission failed.</span>
+You'll have to wait for another assignment.
+                `;
+                typewriterEffect(failText, () => completeMission(0, 0, 0));
+            }
+            gameState.inMinigame = false;
+            gameState.minigameCallback = null;
+        };
+    }
+
+    // --- Helper Functions ---
+    function updateStatus() {
+        moneyEl.textContent = gameState.money;
+        whiteHatRepEl.textContent = gameState.whiteHatRep;
+        blackHatRepEl.textContent = gameState.blackHatRep;
+    }
+
+    function printToOutput(html) {
+        output.innerHTML += `<div>${html}</div>`;
+        scrollToBottom();
+    }
+    
+    function typewriterEffect(text, onComplete) {
+        const lines = text.replace(/^\n+/, '').replace(/\n/g, '<br>').split('<br>');
+        let lineIndex = 0;
+        input.disabled = true;
+
+        function printLine() {
+            if (lineIndex < lines.length) {
+                printToOutput(lines[lineIndex]);
+                lineIndex++;
+                setTimeout(printLine, 50 + Math.random() * 50);
+            } else {
+                input.disabled = false;
+                input.focus();
+                if (onComplete) onComplete();
+            }
+        }
+        printLine();
+    }
+
+    function scrollToBottom() {
+        output.scrollTop = output.scrollHeight;
+    }
+
+    // --- Game Start ---
+    function startGame() {
+        const welcomeMessage = `
+Booting Gray-Fox OS v2.0...
+Kernel loaded.
+Initializing modules... OK
+Connecting to network... OK
+
+Welcome, Gray-Fox 🧑‍💻
+
+Type <span class="highlight">help</span> for a list of available commands.
+Type <span class="highlight">mail</span> to check for your first assignment.
+        `;
+        updateStatus();
+        typewriterEffect(welcomeMessage);
+    }
+
+    startGame();
+</script>
+</body>
+</html>
