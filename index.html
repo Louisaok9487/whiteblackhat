@@ -950,6 +950,8 @@ Type <span class="highlight">report</span> or <span class="highlight">deploy</sp
                 input.disabled = false;
                 if (gameState.gameOver) {
                     input.disabled = true;
+                } else {
+                    input.focus();
                 }
                 if (onComplete) onComplete();
             }
@@ -1012,7 +1014,7 @@ The net is vast, and there's always another contract waiting for someone with yo
     // --- Game Start & Data Loaders ---
     function startGame() {
         const welcomeMessage = `
-Booting Gray-Fox OS v4.9...
+Booting Gray-Fox OS v5.0...
 Kernel loaded. Resource monitor active.
 Network connection secured... OK
 
